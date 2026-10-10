@@ -2,56 +2,34 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+The section below becomes `## [0.1.0] - YYYY-MM-DD` when 0.1.0 is released, after the manual checks in `docs/manual-qa.md` pass. See `docs/release-process.md`.
+
 ## [Unreleased]
+
+First release: grammar and spelling fixes for text you select on the web, entirely on your device.
 
 ### Added
 
-- Release workflow: on a version tag, re-runs all CI gates, checks version consistency, and publishes a GitHub release with the zip, SHA-256 checksums, a CycloneDX SBOM and the CHANGELOG notes. Chrome Web Store publishing stays manual.
-- `verify:package`, `check:version`, `release:notes` and `sbom` scripts.
-- Build gate: no URLs outside a reviewed allow-list and no network APIs outside the grammar worker in shipped code.
-- CI: `npm audit signatures`; checkouts no longer persist the token; Dependabot for npm and GitHub Actions.
-- `docs/security-review.md` and `docs/release-process.md`.
+- **Fix grammar.** Select text in a text box or a rich-text editor, open WriteBetter (toolbar icon, right-click **Improve with WriteBetter**, or Alt+Shift+W) and click **Fix grammar**. Grammar and spelling are checked by [Harper](https://github.com/automattic/harper), which runs inside the extension.
+- **See every change** before anything happens: removed and added words are marked inline, with the reason for each.
+- **Copy** the corrected text, or **replace it on the page** after confirming. Bold text, links and paragraphs are kept, Ctrl+Z undoes it, and an Undo button is offered in plain text boxes.
+- **Works in** ordinary text boxes and rich-text editors: Gmail-style editors and editors built on ProseMirror, Quill and Lexical are tested.
+- **Careful with your words.** Names, web and email addresses, code, file names and HTML are never "corrected". Anything WriteBetter isn't sure about is listed for you to decide.
+- **Safe replacing.** Nothing changes on the page without your confirmation, and never if you have edited the text since WriteBetter read it.
+- **Private.** Text never leaves your device; nothing is stored; there is no account. Password, verification-code and payment fields are never read. WriteBetter can read a page only after you invoke it there.
+- Accessible: keyboard operable, labelled for screen readers, and free of automatically detectable WCAG 2.1 A/AA issues in light and dark mode.
 
-### Fixed
+### Known limitations
 
-- Very large selections (over 40,000 UTF-16 units) are refused before their text is read, instead of being copied into the popup.
-- Removed Vite's module-preload polyfill, an unnecessary `fetch` in the popup.
+- English only. The checker is rule-based: it catches common mistakes and misses some (for example "your welcome").
+- No tone or style rewriting.
+- Editors inside embedded frames and canvas-based editors such as Google Docs are not supported; copy and paste works there.
+- Selections over about 5,000 characters are not checked.
+- About 8 MB to download, mostly the grammar engine.
 
-- End-to-end: the core user journey as one test; repeated actions; a text box removed mid-flow; a tab that moved to another site; an editor inside an embedded frame.
-- Automated accessibility scans (axe-core, WCAG 2.1 A/AA) of every popup state, light and dark. No violations.
-- Every end-to-end test now fails on any error logged by an extension page, with the log attached.
-- `docs/defects.md` and a requirements traceability table in `docs/test-cases.md`.
+### Engineering
 
-- **Rich-text editors**: read and replace in `contenteditable`, tested against real ProseMirror, Quill and Lexical editors and a Gmail-style editor. Fixes are applied one word at a time, so bold text, links and paragraphs are kept, and each is verified after it lands; if an editor puts a change somewhere unexpected, WriteBetter stops and says so.
-- Text in editors is read as displayed: whitespace runs collapsed, line and paragraph breaks as single newlines.
-- `docs/compatibility.md`: tested, unsupported and untested editors.
-
-### Changed
-
-- The two injected page functions are merged into one, `runInPage` (`src/content/page-script.ts`), which reads and writes the page and shares helpers. Replacing is now asynchronous.
-
-- **Change view**: the original text with each fix marked inline (removed and added text, announced to screen readers).
-- **Copy** the corrected text.
-- **Replace on page**, after an explicit confirmation step. Refuses, changing nothing, if the text on the page has changed, the field is gone or read-only, or the result would exceed `maxlength`. Uses the browser's own editing command, so Ctrl+Z in the page undoes it and page frameworks see a normal edit; an **Undo** button does the same from the popup.
-- Popup background now follows dark mode everywhere.
-
-### Changed
-
-- `src/popup/selection-source.ts` renamed to `page-access.ts`, now also home of `replaceOnPage`.
-
-- **Fix grammar**, powered by Harper (harper.js 2.10.0, Apache-2.0) running locally as WebAssembly in a Web Worker. Shows the corrected text, what was fixed, and what to check yourself.
-- Safeguards: URLs, emails, code, tags, file names and identifiers are never changed; capitalised words and the first word are never auto-corrected.
-- CSP now includes `'wasm-unsafe-eval'` (WebAssembly only; JavaScript eval stays blocked).
-- `THIRD_PARTY_NOTICES.txt` with the licence of every bundled package, generated at build time.
-- Build gate: exactly one `.wasm` file, 20 MB size budget.
-- Grammar accuracy regression suite running the real engine in Node.
-
-- Load selected text from a text box into the popup, via the toolbar icon, a right-click **Improve with WriteBetter** entry, or Alt+Shift+W.
-- Status messages for no selection, unsupported fields, rich-text editors, frames, and pages Chrome does not let extensions read.
-- Password, one-time-code and payment-card fields are refused without reading their contents.
-- Permissions `activeTab`, `contextMenus` and `scripting`; still no host permissions. Minimum Chrome version raised to 127.
-- Integration tests with a fake Chrome API, and end-to-end tests that grant `activeTab` the way a real click does.
-- Milestone 1 scaffold: a Manifest V3 extension built with Vite, React, TypeScript and Tailwind CSS.
-- Popup with a text field and Unicode-aware word and character counts, with a 5,000-character limit.
-- An empty background service worker, registered so later milestones can add to it.
-- Unit, component and end-to-end smoke tests; build validation; packaging; CI workflow.
+- Manifest V3; permissions `activeTab`, `contextMenus` and `scripting` only; no host permissions; strict CSP (`'wasm-unsafe-eval'` for the grammar engine only).
+- 288 unit, component and integration tests; 42 end-to-end tests in real Chromium, including real ProseMirror, Quill and Lexical editors, accessibility scans, and failure on any extension-page error.
+- Build gates for permissions, CSP, secrets, network calls, package contents and size. The release workflow publishes the zip with checksums and a CycloneDX SBOM. See `docs/security-review.md` and `docs/release-process.md`.
+- Third-party licences ship in `THIRD_PARTY_NOTICES.txt`.

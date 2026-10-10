@@ -213,6 +213,8 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 
 ## Manual (real Google Chrome)
 
+Step-by-step instructions: [manual-qa.md](manual-qa.md). Automating these in branded Chrome was attempted for 0.1.0: Chrome 155 ignores `--load-extension`, and `Extensions.loadUnpacked` over DevTools reported success but the extension never started (headless or headed, with Developer mode pre-enabled).
+
 These need a person, because they involve Chrome's own UI or branded Chrome.
 
 | ID         | Scenario                       | Steps                                                                           | Expected                                                   | Status      |

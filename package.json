@@ -2,7 +2,7 @@
   "name": "writebetter",
   "version": "0.1.0",
   "private": true,
-  "description": "Chrome extension that improves selected text: grammar, spelling, clarity and tone.",
+  "description": "Chrome extension that fixes grammar and spelling in selected text, on the user's device.",
   "license": "UNLICENSED",
   "type": "module",
   "engines": {
@@ -27,7 +27,8 @@
     "verify:package": "node scripts/verify-package.mjs",
     "check:version": "node scripts/check-version.mjs",
     "release:notes": "node scripts/release-notes.mjs",
-    "sbom": "node scripts/generate-sbom.mjs"
+    "sbom": "node scripts/generate-sbom.mjs",
+    "store:assets": "npm run build && playwright test --config store/playwright.store.config.ts"
   },
   "dependencies": {
     "harper.js": "2.10.0",

@@ -26,7 +26,8 @@ export function buildManifest(version: string): chrome.runtime.ManifestV3 {
     manifest_version: 3,
     name: 'WriteBetter',
     version,
-    description: 'Fix grammar and improve the clarity and tone of your writing, privately.',
+    // Says only what the extension does: no tone or style rewriting yet.
+    description: 'Fix grammar and spelling in text boxes and editors, privately, on your device.',
     // 127 is the first version where any extension may call
     // chrome.action.openPopup(), which the context menu relies on.
     minimum_chrome_version: '127',

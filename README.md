@@ -1,8 +1,8 @@
 # WriteBetter
 
-A Chrome extension that helps you fix grammar and improve the clarity and tone of text you write on the web, without sending your text anywhere by default.
+A Chrome extension that fixes grammar and spelling in text you write on the web, entirely on your device, without sending your text anywhere.
 
-> **Status: Milestone 5 (rich-text editors).** Select text in a text box or a rich-text editor, fix its grammar and spelling on your device, see exactly what changed, then copy the result or put it back on the page, with formatting kept. Free, with no AI and no server.
+> **Status: 0.1.0 release candidate.** Built, tested and packaged; waiting on the manual checks in real Chrome ([docs/manual-qa.md](docs/manual-qa.md)) before release. Free, with no AI and no server.
 
 ## What works today
 
@@ -38,25 +38,31 @@ npx playwright install chromium   # only needed for end-to-end tests and icon ge
 
 ## Commands
 
-| Command                  | What it does                                                                |
-| ------------------------ | --------------------------------------------------------------------------- |
-| `npm run build`          | Production build into `dist/`                                               |
-| `npm run dev`            | Rebuilds `dist/` on every change (reload the extension in Chrome to see it) |
-| `npm run validate:build` | Checks `dist/`: manifest, permissions, referenced files, no secrets         |
-| `npm run verify:package` | Opens the zip and checks it matches the build                               |
-| `npm run check:version`  | Checks package.json, lockfile, CHANGELOG and tag agree                      |
-| `npm run sbom`           | Writes a CycloneDX SBOM of the bundled packages                             |
-| `npm run package`        | Zips `dist/` (without source maps) into `writebetter-<version>.zip`         |
-| `npm run lint`           | ESLint with strict, type-aware rules                                        |
-| `npm run format:check`   | Prettier formatting check (`npm run format` fixes it)                       |
-| `npm run typecheck`      | TypeScript type check                                                       |
-| `npm test`               | Unit, component and integration tests (Vitest)                              |
-| `npm run test:coverage`  | The same, with a coverage report and thresholds                             |
-| `npm run test:e2e`       | Loads the built extension in real Chromium (Playwright). Build first.       |
-| `npm run verify`         | Everything above except e2e and packaging, in CI order                      |
-| `npm run icons`          | Re-renders `public/icons/*.png` from `assets/icon.svg`                      |
+| Command                  | What it does                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `npm run build`          | Production build into `dist/`                                                  |
+| `npm run dev`            | Rebuilds `dist/` on every change (reload the extension in Chrome to see it)    |
+| `npm run validate:build` | Checks `dist/`: manifest, permissions, referenced files, no secrets            |
+| `npm run verify:package` | Opens the zip and checks it matches the build                                  |
+| `npm run check:version`  | Checks package.json, lockfile, CHANGELOG and tag agree                         |
+| `npm run sbom`           | Writes a CycloneDX SBOM of the bundled packages                                |
+| `npm run package`        | Zips `dist/` (without source maps) into `writebetter-<version>.zip`            |
+| `npm run lint`           | ESLint with strict, type-aware rules                                           |
+| `npm run format:check`   | Prettier formatting check (`npm run format` fixes it)                          |
+| `npm run typecheck`      | TypeScript type check                                                          |
+| `npm test`               | Unit, component and integration tests (Vitest)                                 |
+| `npm run test:coverage`  | The same, with a coverage report and thresholds                                |
+| `npm run test:e2e`       | Loads the built extension in real Chromium (Playwright). Build first.          |
+| `npm run verify`         | Everything above except e2e and packaging, in CI order                         |
+| `npm run icons`          | Re-renders `public/icons/*.png` from `assets/icon.svg`                         |
+| `npm run store:assets`   | Regenerates the Chrome Web Store images in `store/images/` from the real popup |
 
-## Load the extension in Chrome
+## Install a release
+
+1. Download `writebetter-<version>.zip` from the repository's GitHub Releases and unzip it.
+2. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose the unzipped folder.
+
+## Load the extension in Chrome from source
 
 1. Run `npm run build`.
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
@@ -78,6 +84,7 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 - In a rich-text editor, undo with Ctrl+Z in the editor (there is no Undo button there). If an editor applies a change unexpectedly, WriteBetter stops and says so.
 - The extension is about 8 MB to download (16 MB installed), mostly the grammar engine.
 - Editors inside embedded frames (some TinyMCE and CKEditor setups) and canvas-based editors (Google Docs) are not supported. Specific sites have not been verified by hand yet; see [compatibility](docs/compatibility.md).
+- Selections over about 5,000 characters are not checked; very large ones are refused without being read.
 - Chrome doesn't let extensions read its own `chrome://` pages, the Chrome Web Store, or other extensions' pages.
 - Word counts split on spaces, so languages written without spaces (Chinese, Japanese, Thai) count a whole run of text as one word.
 - The build prints a harmless `SOURCEMAP_BROKEN` warning from the Tailwind plugin. It affects only CSS source maps, which are not shipped.
@@ -91,8 +98,8 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 5. **Rich-text editors** (done): contenteditable, ProseMirror, Quill, Lexical, tested
 6. **Browser test journey** (done): core journey, robustness, accessibility scans, diagnostics
 7. **CI/CD and security** (done): release workflow, package and network gates, security review
-8. Release readiness
-9. Optional AI mode through a secure backend
+8. **Release readiness** (done, pending manual checks): store listing, images, manual QA checklist, release candidate
+9. Optional AI mode through a secure backend (on hold: WriteBetter is free and local-only for now)
 
 ## Documentation
 
@@ -100,7 +107,7 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 - [Editor compatibility](docs/compatibility.md): what is tested, what is not
 - [Grammar engine](docs/grammar-engine.md): choice, measurements, accuracy, limits
 - [Security](docs/security.md) and the latest [security review](docs/security-review.md)
-- [Release process](docs/release-process.md)
+- [Release process](docs/release-process.md), [manual QA checklist](docs/manual-qa.md) and [Web Store listing draft](store/listing.md)
 - [Privacy](docs/privacy.md)
 - [Testing](docs/testing.md), [test cases](docs/test-cases.md) and [defects](docs/defects.md)
 - [Changelog](CHANGELOG.md)
