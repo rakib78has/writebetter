@@ -1,5 +1,5 @@
 import type { UnsupportedReason } from '../shared/capture.ts';
-import type { SelectionOutcome } from './selection-source.ts';
+import type { SelectionOutcome } from './page-access.ts';
 
 export interface SelectionMessage {
   tone: 'neutral' | 'success' | 'warning';

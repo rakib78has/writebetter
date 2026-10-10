@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { captureSelection } from '../../src/content/capture-selection.ts';
-import { loadSelection, type SelectionApi } from '../../src/popup/selection-source.ts';
+import { replaceInField } from '../../src/content/replace-in-field.ts';
+import { loadSelection, replaceOnPage, type PageApi } from '../../src/popup/page-access.ts';
 
 const CAPTURE = {
   status: 'captured',
@@ -19,7 +20,7 @@ function fakeChrome({
   const executeScript = vi.fn(inject);
   // The fake implements only what loadSelection calls; the cast stands in
   // for Chrome's much larger overloaded signatures.
-  const api = { tabs: { query }, scripting: { executeScript } } as unknown as SelectionApi;
+  const api = { tabs: { query }, scripting: { executeScript } } as unknown as PageApi;
   return { api, query, executeScript };
 }
 
@@ -83,5 +84,45 @@ describe('loadSelection', () => {
   ])('reports a failure for %s', async (_label, results) => {
     const { api } = fakeChrome({ inject: () => Promise.resolve(results) });
     await expect(loadSelection(api, '')).resolves.toEqual({ status: 'failed' });
+  });
+});
+
+describe('replaceOnPage', () => {
+  const REQUEST = { start: 0, end: 3, expected: 'teh', replacement: 'the' };
+  const replaced = () => Promise.resolve([{ frameId: 0, result: { status: 'replaced' } }]);
+
+  // WB-INT-044
+  it('injects the replace function, with the request, into the target tab only', async () => {
+    const { api, executeScript } = fakeChrome({ inject: replaced });
+
+    await expect(replaceOnPage(api, '?tab=42', REQUEST)).resolves.toEqual({ status: 'replaced' });
+    expect(executeScript).toHaveBeenCalledWith({
+      target: { tabId: 42 },
+      func: replaceInField,
+      args: [REQUEST],
+    });
+  });
+
+  // WB-INT-045
+  it('reports the page as unavailable when Chrome refuses, e.g. after the tab changed site', async () => {
+    const { api } = fakeChrome({ inject: () => Promise.reject(new Error('Cannot access')) });
+    await expect(replaceOnPage(api, '', REQUEST)).resolves.toEqual({ status: 'page-unavailable' });
+  });
+
+  // WB-INT-046
+  it('reports the page as unavailable for an invalid tab, without injecting', async () => {
+    const { api, executeScript } = fakeChrome({ inject: replaced });
+    await expect(replaceOnPage(api, '?tab=x', REQUEST)).resolves.toEqual({
+      status: 'page-unavailable',
+    });
+    expect(executeScript).not.toHaveBeenCalled();
+  });
+
+  // WB-INT-047
+  it('treats a missing or malformed page answer as a failure', async () => {
+    for (const results of [[], [{ frameId: 0, result: { status: 'done' } }]]) {
+      const { api } = fakeChrome({ inject: () => Promise.resolve(results) });
+      await expect(replaceOnPage(api, '', REQUEST)).resolves.toEqual({ status: 'failed' });
+    }
   });
 });

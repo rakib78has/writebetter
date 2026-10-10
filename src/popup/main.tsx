@@ -1,9 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../styles/global.css';
+import type { ReplaceRequest } from '../shared/replace.ts';
 import { createWorkerGrammarChecker } from '../writing/local/worker-checker.ts';
 import { App } from './App.tsx';
-import { loadSelection } from './selection-source.ts';
+import { loadSelection, replaceOnPage } from './page-access.ts';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Popup root element #root is missing from index.html');
@@ -11,6 +12,9 @@ if (!container) throw new Error('Popup root element #root is missing from index.
 // Defined once, outside React, so the effect that calls it runs once per
 // popup opening rather than on every render.
 const loadFromPage = () => loadSelection(chrome, window.location.search);
+const replaceText = (request: ReplaceRequest) =>
+  replaceOnPage(chrome, window.location.search, request);
+const copyText = (text: string) => navigator.clipboard.writeText(text);
 
 // The `new URL(..., import.meta.url)` form is what tells Vite to bundle the
 // worker as its own file.
@@ -27,6 +31,11 @@ grammar.prepare().catch(() => undefined);
 
 createRoot(container).render(
   <StrictMode>
-    <App loadSelection={loadFromPage} grammar={grammar} />
+    <App
+      loadSelection={loadFromPage}
+      grammar={grammar}
+      replaceText={replaceText}
+      copyText={copyText}
+    />
   </StrictMode>
 );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { describeSelection } from '../../src/popup/selection-message.ts';
-import type { SelectionOutcome } from '../../src/popup/selection-source.ts';
+import type { SelectionOutcome } from '../../src/popup/page-access.ts';
 
 const captured: SelectionOutcome = {
   status: 'captured',

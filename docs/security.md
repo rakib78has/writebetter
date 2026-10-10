@@ -1,6 +1,6 @@
 # Security
 
-## Threat model (Milestone 3)
+## Threat model (Milestone 4)
 
 | Asset                 | Threat                                                        | Current mitigation                                                                                                                                                           |
 | --------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -13,6 +13,10 @@
 | The extension package | Ships a credential                                            | `validate:build` scans every bundled file for key patterns and fails the build.                                                                                              |
 | Grammar engine        | Sends text over the network                                   | Harper is bundled; its only fetch is its own `.wasm` from the package. An e2e test fails on any request outside the extension (WB-SEC-018).                                  |
 | Grammar engine        | Changes text in harmful ways                                  | Safeguards: no changes to URLs, emails, code, tags, identifiers; no auto-correction of names or of the first word. See grammar-engine.md.                                    |
+| Page text             | Changed without the user agreeing                             | Two explicit clicks ("Replace on page", "Yes, replace"); nothing runs on the page before the second. WB-SEC-021.                                                             |
+| Page text             | Newer edits overwritten by a stale result                     | The page checks the exact expected text at the exact offsets before changing anything; refuses otherwise. WB-SEC-019, WB-SEC-024.                                            |
+| Page text             | Partial or truncated change                                   | Refuses up front if the result would exceed `maxlength`; verifies the new text is present afterwards.                                                                        |
+| Sensitive fields      | Written to, or read during a write                            | `replaceInField` rejects password, one-time-code and payment fields before touching their value. WB-SEC-020.                                                                 |
 | Worker messages       | Malformed message, or an error that echoes text               | Both directions validated in `protocol.ts`; error responses carry no message. WB-SEC-014–016.                                                                                |
 | The extension package | Runs code fetched at runtime                                  | CSP `script-src 'self'`; `validate:build` rejects remote scripts and imports.                                                                                                |
 | The user's browsing   | Permissions quietly grow                                      | `validate:build` fails on any permission outside its allow-list, and on any host permission.                                                                                 |

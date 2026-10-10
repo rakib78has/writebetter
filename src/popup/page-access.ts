@@ -1,5 +1,7 @@
 import { captureSelection } from '../content/capture-selection.ts';
+import { replaceInField } from '../content/replace-in-field.ts';
 import { parseCaptureResult, type CaptureResult } from '../shared/capture.ts';
+import { parseReplaceResult, type ReplaceRequest, type ReplaceResult } from '../shared/replace.ts';
 
 export type SelectionOutcome =
   | CaptureResult
@@ -10,21 +12,21 @@ export type SelectionOutcome =
   | { status: 'failed' };
 
 /** The slice of the Chrome API this module uses, so tests can supply a fake. */
-export interface SelectionApi {
+export interface PageApi {
   tabs: Pick<typeof chrome.tabs, 'query'>;
   scripting: Pick<typeof chrome.scripting, 'executeScript'>;
 }
 
 /**
- * Finds the tab to read from.
+ * Finds the tab to read from or write to.
  *
- * Opened from the toolbar, the popup reads the active tab of its window.
+ * Opened from the toolbar, the popup works on the active tab of its window.
  * Opened as an ordinary page, which is how the end-to-end tests drive it, it
  * is told the tab with `?tab=<id>`. That grants no access by itself: Chrome
- * still allows the read only if the user has invoked the extension on that
+ * still allows access only if the user has invoked the extension on that
  * tab (the activeTab permission).
  */
-async function findTargetTabId(api: SelectionApi, search: string): Promise<number | undefined> {
+async function findTargetTabId(api: PageApi, search: string): Promise<number | undefined> {
   const requested = new URLSearchParams(search).get('tab');
   if (requested !== null) {
     // Checked as text first, because Number('') is 0, a plausible tab id.
@@ -37,7 +39,7 @@ async function findTargetTabId(api: SelectionApi, search: string): Promise<numbe
 }
 
 /** Reads the user's selection from the target tab's main frame. */
-export async function loadSelection(api: SelectionApi, search: string): Promise<SelectionOutcome> {
+export async function loadSelection(api: PageApi, search: string): Promise<SelectionOutcome> {
   let results: chrome.scripting.InjectionResult[];
   try {
     const tabId = await findTargetTabId(api, search);
@@ -51,4 +53,32 @@ export async function loadSelection(api: SelectionApi, search: string): Promise<
   }
 
   return parseCaptureResult(results[0]?.result) ?? { status: 'failed' };
+}
+
+export type ReplaceOutcome = ReplaceResult | { status: 'page-unavailable' };
+
+/**
+ * Replaces text in the target tab's focused field. Call only after the user
+ * has confirmed: this changes their page.
+ */
+export async function replaceOnPage(
+  api: PageApi,
+  search: string,
+  request: ReplaceRequest
+): Promise<ReplaceOutcome> {
+  let results: chrome.scripting.InjectionResult[];
+  try {
+    const tabId = await findTargetTabId(api, search);
+    if (tabId === undefined) return { status: 'page-unavailable' };
+    results = await api.scripting.executeScript({
+      target: { tabId },
+      func: replaceInField,
+      args: [request],
+    });
+  } catch {
+    // Most often the tab moved to another site, which ends activeTab access.
+    return { status: 'page-unavailable' };
+  }
+
+  return parseReplaceResult(results[0]?.result);
 }

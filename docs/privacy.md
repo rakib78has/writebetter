@@ -2,7 +2,7 @@
 
 This describes the extension as it is built today. It is updated whenever data handling changes.
 
-## Current behavior (Milestone 3)
+## Current behavior (Milestone 4)
 
 | Question                           | Answer                                                                                                                                                          |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -10,6 +10,7 @@ This describes the extension as it is built today. It is updated whenever data h
 | What does it read?                 | Only the text you selected in the focused text box. Not the rest of the box, not the rest of the page, not the page address.                                    |
 | What does it never read?           | Password fields, verification-code fields and payment-card fields. They are recognised from their attributes, and their contents are never touched.             |
 | Where is the text processed?       | On your device. Grammar is checked by Harper, a grammar engine bundled inside the extension and run in the browser. Nothing is sent anywhere (test WB-SEC-018). |
+| Does it change the page?           | Only when you click **Replace on page** and then **Yes, replace**. It changes only the text you selected, and only if it is still exactly as it was.            |
 | Is anything sent over the network? | No. The extension makes no network requests.                                                                                                                    |
 | Is anything stored?                | No. The text is discarded when the popup closes.                                                                                                                |
 | Analytics or telemetry?            | None.                                                                                                                                                           |

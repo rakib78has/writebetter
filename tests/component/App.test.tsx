@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/popup/App.tsx';
-import type { SelectionOutcome } from '../../src/popup/selection-source.ts';
+import type { SelectionOutcome } from '../../src/popup/page-access.ts';
 import { MAX_INPUT_CHARACTERS } from '../../src/shared/constants.ts';
 import { GrammarCheckError, type GrammarChecker, type Issue } from '../../src/writing/types.ts';
 
@@ -41,6 +41,14 @@ function issueIn(text: string, original: string, replacement: string, autoFix = 
   };
 }
 
+/** Stand-ins for writing to the page and the clipboard. */
+function pageFakes() {
+  return {
+    replaceText: vi.fn(() => Promise.resolve({ status: 'replaced' as const })),
+    copyText: vi.fn(() => Promise.resolve()),
+  };
+}
+
 /** A grammar checker that answers every check with `respond(text)`. */
 function fakeGrammar(respond: (text: string) => Promise<Issue[]> = () => Promise.resolve([])) {
   return {
@@ -54,7 +62,7 @@ async function renderPopup(
   grammar: GrammarChecker = fakeGrammar()
 ) {
   const user = userEvent.setup();
-  render(<App loadSelection={() => Promise.resolve(outcome)} grammar={grammar} />);
+  render(<App {...pageFakes()} loadSelection={() => Promise.resolve(outcome)} grammar={grammar} />);
   const textbox = screen.getByRole('textbox', { name: 'Text to improve' });
   // Let the selection load settle so each test starts from a stable state.
   await screen.findByText(
@@ -142,7 +150,7 @@ describe('popup loading the page selection', () => {
   // WB-UI-008
   it('announces that it is reading the selection, then fills the field with it', async () => {
     const loader = deferred<SelectionOutcome>();
-    render(<App loadSelection={() => loader.promise} grammar={fakeGrammar()} />);
+    render(<App {...pageFakes()} loadSelection={() => loader.promise} grammar={fakeGrammar()} />);
 
     expect(screen.getByRole('status')).toHaveTextContent('Reading your selection…');
 
@@ -161,7 +169,7 @@ describe('popup loading the page selection', () => {
   it('never overwrites text the user typed while the selection was loading', async () => {
     const user = userEvent.setup();
     const loader = deferred<SelectionOutcome>();
-    render(<App loadSelection={() => loader.promise} grammar={fakeGrammar()} />);
+    render(<App {...pageFakes()} loadSelection={() => loader.promise} grammar={fakeGrammar()} />);
     const textbox = screen.getByRole('textbox', { name: 'Text to improve' });
 
     await user.type(textbox, 'my own words');
@@ -194,7 +202,7 @@ describe('popup loading the page selection', () => {
   // WB-UI-012
   it('reads the selection once per opening', async () => {
     const load = vi.fn(() => Promise.resolve(NO_FIELD));
-    render(<App loadSelection={load} grammar={fakeGrammar()} />);
+    render(<App {...pageFakes()} loadSelection={load} grammar={fakeGrammar()} />);
     await screen.findByText(/select text in a text box/i);
     expect(load).toHaveBeenCalledTimes(1);
   });
@@ -341,5 +349,47 @@ describe('popup Fix grammar', () => {
 
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
     expect(document.querySelector('img')).toBeNull();
+  });
+});
+
+describe('popup writing back to the page', () => {
+  const TEXT = 'This is teh plan.';
+  const withFix = () => fakeGrammar(() => Promise.resolve([issueIn(TEXT, 'teh', 'the')]));
+
+  // WB-UI-031
+  it('offers to replace text that came from an editable field on the page', async () => {
+    const { user, fixButton } = await renderPopup(captured(TEXT), withFix());
+    await user.click(fixButton);
+    expect(await screen.findByRole('button', { name: 'Replace on page' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Changes')).toHaveTextContent('teh');
+  });
+
+  // WB-UI-032
+  it.each<[string, SelectionOutcome]>([
+    ['text typed into the popup', NO_FIELD],
+    ['a read-only field', captured(TEXT, true)],
+  ])('offers only Copy for %s', async (_label, outcome) => {
+    const { user, textbox, fixButton } = await renderPopup(outcome, withFix());
+    if (outcome.status !== 'captured') await user.type(textbox, TEXT);
+    await user.click(fixButton);
+
+    expect(await screen.findByRole('button', { name: 'Copy' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Replace on page' })).not.toBeInTheDocument();
+  });
+
+  // WB-UI-033
+  it('starts each new result with fresh actions', async () => {
+    const { user, textbox, fixButton } = await renderPopup(captured(TEXT), withFix());
+    await user.click(fixButton);
+    await user.click(await screen.findByRole('button', { name: 'Replace on page' }));
+    expect(screen.getByRole('group', { name: 'Confirm replacement' })).toBeInTheDocument();
+
+    // Editing clears the result; checking again must not reopen the old
+    // confirmation.
+    await user.type(textbox, ' ');
+    await user.click(fixButton);
+    await screen.findByRole('button', { name: 'Replace on page' });
+
+    expect(screen.queryByRole('group', { name: 'Confirm replacement' })).not.toBeInTheDocument();
   });
 });

@@ -15,7 +15,7 @@
 - **Unit tests** check logic exhaustively and fast: dozens of edge cases in milliseconds.
 - **Component tests** check code that touches the DOM. React components are queried the way a user or screen reader finds them: by role and accessible name (`getByRole('textbox', { name: 'Text to improve' })`), never by CSS class. If a test can't find an element by its accessible name, neither can assistive technology. The capture function also runs here against jsdom, for its many edge cases.
 - **Integration tests** also include the **grammar accuracy suite**, which runs the real Harper engine in Node through the full Fix grammar pipeline against `tests/fixtures/grammar-cases.json`. Known misses are recorded too: if a Harper upgrade starts catching one, its test fails, so the fixture is updated on purpose rather than silently.
-- **Integration tests** check the modules that call Chrome APIs (`selection-source`, `context-menu`) with a small fake passed in as a parameter. Each module receives the API as an argument rather than reading the global `chrome`, so no global mocking is needed.
+- **Integration tests** check the modules that call Chrome APIs (`page-access`, `context-menu`) with a small fake passed in as a parameter. Each module receives the API as an argument rather than reading the global `chrome`, so no global mocking is needed.
 - **End-to-end tests** prove what the others cannot: the built extension loads, permissions actually grant (and withhold) access, the injected function survives minification, and the popup works against real pages.
 
 ## End-to-end setup
@@ -39,6 +39,12 @@ Playwright cannot attach to the popup window that opens, so the fixture then ope
 ### Harper in Node
 
 `tests/helpers/harper-node.ts` loads the WebAssembly as a `data:` URL. harper.js's built-in Node loader breaks on Windows paths (it reads `new URL(path).pathname`, which gives `/C:/…`), and a `data:` URL works on every platform.
+
+### Replacing text and the clipboard
+
+jsdom has no `document.execCommand`, so component tests cover `replaceInField`'s fallback path, including a React-controlled input. The real `execCommand` path, native Ctrl+Z undo and the input events a page sees are covered in Chromium by `tests/e2e/replace.spec.ts`.
+
+Chrome will not grant clipboard-read permission to an extension page in a test, so the copy test checks the clipboard the way a user would: it pastes into a text box on the test page.
 
 ### What cannot be automated
 

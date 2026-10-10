@@ -2,7 +2,7 @@
 
 A Chrome extension that helps you fix grammar and improve the clarity and tone of text you write on the web, without sending your text anywhere by default.
 
-> **Status: Milestone 3 (local grammar engine).** WriteBetter loads text you select on a page and fixes its grammar and spelling, entirely on your device. Rewriting (tone, clarity) and replacing the text on the page come in later milestones (see [Roadmap](#roadmap)).
+> **Status: Milestone 4 (copy and replace).** Select text on a page, fix its grammar and spelling on your device, see exactly what changed, then copy the result or put it back on the page. Free, with no AI and no server.
 
 ## What works today
 
@@ -14,6 +14,8 @@ A Chrome extension that helps you fix grammar and improve the clarity and tone o
   The selected text appears in the popup.
 
 - **Fix grammar.** Corrects common grammar, spelling and punctuation mistakes using [Harper](https://github.com/automattic/harper), which runs inside the extension. Your text never leaves your device. You see the corrected text and a list of every change.
+- **See every change.** Removed words are struck through and added words highlighted, so nothing changes without you seeing it.
+- **Copy, or replace on the page.** Replacing asks you to confirm first, refuses if you have edited the text since, and can be undone with the **Undo** button or Ctrl+Z in the page.
 - **Safe by design.** Names, URLs, email addresses, code and file names are never "corrected". Anything WriteBetter is unsure about is listed for you to check, not changed.
 - Clear messages when there is nothing to load: no selection, an unsupported field, or a page Chrome doesn't let extensions read.
 - Password, verification-code and payment fields are never read.
@@ -68,8 +70,8 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 ## Known limitations
 
 - Fix grammar is English only, and rule-based: it catches common mistakes but misses some (for example "your welcome"). See [grammar engine](docs/grammar-engine.md).
-- The corrected text is shown in the popup. Copying it, and replacing the text on the page, come in Milestone 4.
-- Rewrite actions (Make Professional, Make Friendly, and so on) are not built yet.
+- No tone or style rewriting (Make Professional, Make Friendly, and so on). Those need an AI model, and WriteBetter is deliberately free and local-only for now.
+- Replace works in plain text boxes only, like reading does. If a site does unusual things with its text boxes, use Copy instead.
 - The extension is about 8 MB to download (16 MB installed), mostly the grammar engine.
 - Only plain text boxes are supported: `<textarea>`, and `<input>` of type text, search, url or tel. Rich-text editors (such as Gmail's compose box) and fields inside embedded frames show a "paste it below instead" message. Editor support is planned for Milestone 5.
 - Chrome doesn't let extensions read its own `chrome://` pages, the Chrome Web Store, or other extensions' pages.
@@ -81,7 +83,7 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 1. **Scaffold** (done): build, popup, lint, tests, CI
 2. **Text selection** (done): inputs and textareas, via icon, context menu or shortcut
 3. **Local grammar engine** (done): Fix grammar with Harper, on-device
-4. Rewrite actions, comparison, copy and replace
+4. **Copy and replace** (done): change view, copy, confirmed replace with undo. AI rewrite actions are on hold (free, local-only for now).
 5. Rich-text editor compatibility
 6. Full browser test journey
 7. CI/CD and security hardening

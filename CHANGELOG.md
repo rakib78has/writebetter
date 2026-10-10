@@ -6,6 +6,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- **Change view**: the original text with each fix marked inline (removed and added text, announced to screen readers).
+- **Copy** the corrected text.
+- **Replace on page**, after an explicit confirmation step. Refuses, changing nothing, if the text on the page has changed, the field is gone or read-only, or the result would exceed `maxlength`. Uses the browser's own editing command, so Ctrl+Z in the page undoes it and page frameworks see a normal edit; an **Undo** button does the same from the popup.
+- Popup background now follows dark mode everywhere.
+
+### Changed
+
+- `src/popup/selection-source.ts` renamed to `page-access.ts`, now also home of `replaceOnPage`.
+
 - **Fix grammar**, powered by Harper (harper.js 2.10.0, Apache-2.0) running locally as WebAssembly in a Web Worker. Shows the corrected text, what was fixed, and what to check yourself.
 - Safeguards: URLs, emails, code, tags, file names and identifiers are never changed; capitalised words and the first word are never auto-corrected.
 - CSP now includes `'wasm-unsafe-eval'` (WebAssembly only; JavaScript eval stays blocked).

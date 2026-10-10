@@ -1,1 +1,11 @@
 @import 'tailwindcss';
+
+/* Lets native controls (scrollbars, form fields) follow the system theme,
+   and themes the page behind the content, not just the main panel. */
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-white dark:bg-slate-900;
+}

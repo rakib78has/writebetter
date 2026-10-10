@@ -26,13 +26,14 @@ src/
   popup/
     App.tsx                React UI; receives loadSelection() as a prop
     main.tsx               Mounts App with the real Chrome-backed loader
-    selection-source.ts    Finds the tab, injects captureSelection, validates the result
+    page-access.ts         Finds the tab; injects captureSelection / replaceInField
     selection-message.ts   Turns each outcome into a message for the user
   background/
     service-worker.ts      Registers listeners at startup
     context-menu.ts        Menu registration and click handling
   content/
-    capture-selection.ts   Self-contained function injected into the page
+    capture-selection.ts   Self-contained function injected to read the selection
+    replace-in-field.ts    Self-contained function injected to write it back
   writing/                The writing engine. Knows nothing about Chrome or the UI
     types.ts               Issue, GrammarChecker, GrammarCheckError
     fix-grammar.ts         The "Fix grammar" action: check → safeguards → apply
@@ -44,7 +45,7 @@ src/
       worker-checker.ts    Popup side: GrammarChecker over postMessage, timeouts
       protocol.ts          Validated message types between the two
       harper-issues.ts     The only file that knows Harper's types
-  popup/components/       GrammarResults.tsx
+  popup/components/       GrammarResults, ChangeView (inline diff), ResultActions (copy/replace/undo)
   shared/                  Logic with no Chrome or DOM dependency
     capture.ts             CaptureResult type and parseCaptureResult() validator
     constants.ts           MAX_INPUT_CHARACTERS
@@ -83,6 +84,24 @@ There is no long-lived content script and no runtime messaging yet: `executeScri
 ## Fixing grammar (Milestone 3)
 
 See [grammar-engine.md](grammar-engine.md) for the engine choice, measurements and limits. In short: the popup starts a Web Worker as soon as it opens; the worker loads Harper (WebAssembly); "Fix grammar" sends the text, gets `Issue[]` back, applies WriteBetter's safeguards, then applies the safe fixes. The popup depends only on the `GrammarChecker` interface, so a remote AI engine can be added beside Harper later without UI changes.
+
+## Writing back to the page (Milestone 4)
+
+```
+popup: "Replace on page" → "Yes, replace"        (two clicks, nothing before the second)
+        │  replaceOnPage({ start, end, expected: captured text, replacement: corrected })
+        ▼
+replaceInField() in the page
+        │  focused field still a plain, editable, non-sensitive text box?
+        │  value.slice(start, end) === expected?    else → "changed", nothing touched
+        │  fits maxlength?                          else → "too-long", nothing touched
+        │  execCommand('insertText')  → native undo + real input events
+        │    (fallback: setRangeText + synthetic input event)
+        ▼
+verify the new text is there → "replaced"; select it so the user sees it
+```
+
+Undo runs the same function in reverse: it expects the corrected text and puts the original back, so it too refuses if the user has edited in between.
 
 ## Planned data flow
 
@@ -147,3 +166,15 @@ Only `harper-issues.ts` imports Harper's types; everything else uses `Issue` and
 ### D11. Safeguards outside the engine
 
 Rules about what may be changed automatically (`safeguards.ts`) live outside the engine adapter, so they will apply equally to a future remote engine. They were each added because a test showed the engine doing something harmful: changing names, mangling HTML, capitalising fragments.
+
+### D12. execCommand('insertText') for replacing text
+
+It is deprecated, but it is the only way to change a field's text so that the browser records it in its own undo history (Ctrl+Z) and fires the same `input` event typing does, which React and other frameworks rely on. Setting `value` directly loses undo and can be silently ignored by frameworks. A `setRangeText` fallback covers browsers where the command is unavailable. Both paths are tested: the fallback in jsdom (including a React-controlled input), the command in real Chromium (WB-E2E-019/020).
+
+### D13. Diff built from the applied fixes
+
+The change view is drawn from the exact fixes `applyFixes` made, not by diffing the two texts. It can't show a change that didn't happen, and it needs no diff library.
+
+### D14. No AI, for now
+
+Tone and style rewrites (Make Professional, Make Friendly and so on) need a language model. The decision for now is to keep WriteBetter entirely free and local, so those actions are not built. The `GrammarChecker` interface and the result UI do not assume an engine, so a rewrite engine can be added later without reworking them.

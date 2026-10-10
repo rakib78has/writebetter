@@ -3,9 +3,11 @@ import { MAX_INPUT_CHARACTERS } from '../shared/constants.ts';
 import { getTextStats } from '../shared/text-stats.ts';
 import { fixGrammar, type GrammarReport } from '../writing/fix-grammar.ts';
 import { GrammarCheckError, type GrammarChecker } from '../writing/types.ts';
+import type { ReplaceRequest } from '../shared/replace.ts';
 import { GrammarResults } from './components/GrammarResults.tsx';
+import type { ReplaceTarget } from './components/ResultActions.tsx';
+import type { ReplaceOutcome, SelectionOutcome } from './page-access.ts';
 import { describeSelection } from './selection-message.ts';
-import type { SelectionOutcome } from './selection-source.ts';
 
 const numberFormat = new Intl.NumberFormat('en');
 
@@ -18,7 +20,8 @@ const TONE_CLASSES = {
 type CheckState =
   | { status: 'idle' }
   | { status: 'checking' }
-  | { status: 'done'; report: GrammarReport }
+  /** `run` identifies the check, so each result starts with fresh actions. */
+  | { status: 'done'; report: GrammarReport; run: number }
   | { status: 'error'; message: string };
 
 export interface AppProps {
@@ -26,15 +29,34 @@ export interface AppProps {
   loadSelection: () => Promise<SelectionOutcome>;
   /** The grammar engine. Injected so tests can fake it. */
   grammar: GrammarChecker;
+  /** Replaces text in the page's field, after the user confirms. */
+  replaceText: (request: ReplaceRequest) => Promise<ReplaceOutcome>;
+  /** Puts text on the clipboard. */
+  copyText: (text: string) => Promise<void>;
 }
 
-export function App({ loadSelection, grammar }: AppProps) {
+/** Where a result could be written back, given how the text was obtained. */
+function replaceTargetFor(selection: SelectionOutcome | 'loading'): ReplaceTarget {
+  if (selection === 'loading' || selection.status !== 'captured') {
+    return { kind: 'unavailable', reason: 'typed' };
+  }
+  if (selection.readOnly) return { kind: 'unavailable', reason: 'read-only' };
+  return {
+    kind: 'field',
+    start: selection.selection.start,
+    end: selection.selection.end,
+    original: selection.text,
+  };
+}
+
+export function App({ loadSelection, grammar, replaceText, copyText }: AppProps) {
   const [text, setText] = useState('');
   const [selection, setSelection] = useState<SelectionOutcome | 'loading'>('loading');
   const [check, setCheck] = useState<CheckState>({ status: 'idle' });
   // The latest text, readable from inside an async callback, so a result for
   // text the user has since edited can be recognised as stale and dropped.
   const latestText = useRef(text);
+  const runs = useRef(0);
   const stats = getTextStats(text);
   const inputId = useId();
   const statsId = useId();
@@ -70,7 +92,9 @@ export function App({ loadSelection, grammar }: AppProps) {
     setCheck({ status: 'checking' });
     try {
       const report = await fixGrammar(grammar, snapshot);
-      if (latestText.current === snapshot) setCheck({ status: 'done', report });
+      if (latestText.current === snapshot) {
+        setCheck({ status: 'done', report, run: ++runs.current });
+      }
     } catch (error) {
       if (latestText.current !== snapshot) return;
       const timeout = error instanceof GrammarCheckError && error.reason === 'timeout';
@@ -145,7 +169,15 @@ export function App({ loadSelection, grammar }: AppProps) {
         {check.status === 'checking' && (
           <p className="text-xs text-slate-600 dark:text-slate-400">Checking your text…</p>
         )}
-        {check.status === 'done' && <GrammarResults report={check.report} />}
+        {check.status === 'done' && (
+          <GrammarResults
+            key={check.run}
+            report={check.report}
+            target={replaceTargetFor(selection)}
+            replaceText={replaceText}
+            copyText={copyText}
+          />
+        )}
       </div>
       {check.status === 'error' && (
         <p
