@@ -56,7 +56,7 @@ export interface ExtensionFixtures {
 
 export const test = base.extend<ExtensionFixtures>({
   // `headless` is Playwright's own option, so `--headed` still works.
-  context: async ({ headless }, use) => {
+  context: async ({ headless }, use, testInfo) => {
     const userDataDir = await mkdtemp(join(tmpdir(), 'writebetter-profile-'));
     const context = await chromium.launchPersistentContext(userDataDir, {
       channel: 'chromium',
@@ -86,10 +86,35 @@ export const test = base.extend<ExtensionFixtures>({
       }
     });
 
+    // Every extension page is watched for uncaught errors and console
+    // errors. Any test that produces one fails, with the messages attached
+    // to its report, so problems no assertion looks for are still caught.
+    const extensionErrors: string[] = [];
+    const watch = (page: Page) => {
+      const record = (kind: string, text: string) => {
+        if (page.url().startsWith('chrome-extension://')) {
+          extensionErrors.push(`[${kind}] ${new URL(page.url()).pathname}: ${text}`);
+        }
+      };
+      page.on('pageerror', (error) => {
+        record('uncaught', error.message);
+      });
+      page.on('console', (message) => {
+        if (message.type() === 'error') record('console', message.text());
+      });
+    };
+    context.pages().forEach(watch);
+    context.on('page', watch);
+
     await use(context);
 
     await context.close();
     await rm(userDataDir, { recursive: true, force: true });
+
+    if (extensionErrors.length > 0) {
+      await testInfo.attach('extension-errors.txt', { body: extensionErrors.join('\n') });
+      throw new Error(`Extension pages logged errors:\n${extensionErrors.join('\n')}`);
+    }
   },
 
   serviceWorker: async ({ context }, use) => {

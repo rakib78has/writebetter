@@ -86,7 +86,7 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 3. **Local grammar engine** (done): Fix grammar with Harper, on-device
 4. **Copy and replace** (done): change view, copy, confirmed replace with undo. AI rewrite actions are on hold (free, local-only for now).
 5. **Rich-text editors** (done): contenteditable, ProseMirror, Quill, Lexical, tested
-6. Full browser test journey
+6. **Browser test journey** (done): core journey, robustness, accessibility scans, diagnostics
 7. CI/CD and security hardening
 8. Release readiness
 9. Optional AI mode through a secure backend
@@ -98,5 +98,5 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 - [Grammar engine](docs/grammar-engine.md): choice, measurements, accuracy, limits
 - [Security](docs/security.md)
 - [Privacy](docs/privacy.md)
-- [Testing](docs/testing.md) and [test cases](docs/test-cases.md)
+- [Testing](docs/testing.md), [test cases](docs/test-cases.md) and [defects](docs/defects.md)
 - [Changelog](CHANGELOG.md)

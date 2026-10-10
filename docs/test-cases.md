@@ -2,7 +2,7 @@
 
 Status records the most recent execution. A test is marked **Pass** only after it has actually run.
 
-Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 284 Vitest tests and 34 Playwright tests passed. CI passed for Milestones 1–3 (PRs #1 and #2).
+Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 284 Vitest tests and 41 Playwright tests passed. CI passed for Milestones 1–3 (PRs #1 and #2).
 
 Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run build` and the Playwright Chromium install.
 
@@ -196,6 +196,18 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-E2E-022 | Copy                                                                             | Copy, paste into page field                               | Pasted text is the corrected text                                            | Pass   | Yes       |
 | WB-E2E-023 | Rich editors: fix and replace (×4: contenteditable, ProseMirror, Quill, Lexical) | Select across bold and link, invoke, Fix grammar, confirm | Editor model holds fixed text; bold and link kept; 2 paragraphs              | Pass   | Yes       |
 | WB-E2E-024 | Rich editors: Ctrl+Z (×4)                                                        | Replace, then Ctrl+Z in editor                            | Original text restored in the editor model                                   | Pass   | Yes       |
+| WB-E2E-025 | Core journey in one test                                                         | Select, open, fix, review, copy, replace, undo            | Each step as the brief describes                                             | Pass   | Yes       |
+| WB-E2E-026 | Repeated actions                                                                 | Double-click Fix grammar; edit; check again               | One result each time, for the latest text                                    | Pass   | Yes       |
+| WB-E2E-027 | Text box removed from the page                                                   | Fix, remove field, replace                                | "no longer selected"; corrected text still available                         | Pass   | Yes       |
+| WB-E2E-028 | Tab moved to another site                                                        | Fix, navigate cross-origin, replace                       | "can no longer reach that page"; new page untouched                          | Pass   | Yes       |
+| WB-E2E-029 | Embedded frame                                                                   | Focus textarea in an iframe, invoke                       | Frame fallback message; pasted text still fixable                            | Pass   | Yes       |
+
+## Accessibility
+
+| ID          | Scenario                                    | Expected                                                                                      | Status      | Automated |
+| ----------- | ------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------- | --------- |
+| WB-A11Y-001 | axe-core WCAG 2.1 A/AA scan, light and dark | No violations in 6 popup states: no access, over limit, loaded, results, confirming, replaced | Pass        | Yes       |
+| WB-A11Y-002 | Screen reader pass (NVDA or VoiceOver)      | Every control named; status and results announced                                             | **Not run** | No        |
 
 ## Manual (real Google Chrome)
 
@@ -243,3 +255,30 @@ These need a person, because they involve Chrome's own UI or branded Chrome.
 | WB-SEC-025 | Rich editor text changed since checking              | changed; no edit attempted                                                                                                                          | Pass                | Yes       |
 | WB-SEC-026 | Uneditable text never edited                         | contenteditable="false" part untouched; partial                                                                                                     | Pass                | Yes       |
 | WB-SEC-027 | Misplaced editor edit caught (mutation test, manual) | With the selection wait removed, Lexical misapplied the first edit; WriteBetter stopped and showed the "didn't apply a change where expected" alert | Pass (manual, once) | No        |
+
+## Requirements traceability
+
+The end-to-end requirements from the product brief (section 12.D) and where each is verified.
+
+| #   | Requirement                                         | Verified by                                                  | Status           |
+| --- | --------------------------------------------------- | ------------------------------------------------------------ | ---------------- |
+| 1   | Extension loads correctly                           | WB-E2E-001                                                   | Pass             |
+| 2   | Popup opens                                         | WB-E2E-002, WB-E2E-004                                       | Pass             |
+| 3   | A supported text field can be processed             | WB-E2E-006, WB-E2E-007, WB-E2E-023                           | Pass             |
+| 4   | Grammar correction produces the expected result     | WB-E2E-017, WB-INT-024 (17 fixtures)                         | Pass             |
+| 5   | Each rewrite action uses the correct configuration  | Not applicable: only Fix grammar exists (no AI, by decision) | n/a              |
+| 6   | Copying revised text works                          | WB-E2E-022                                                   | Pass             |
+| 7   | Replacement only after explicit confirmation        | WB-E2E-019, WB-SEC-021                                       | Pass             |
+| 8   | Replacement updates supported editors correctly     | WB-E2E-019, WB-E2E-023 (×4 editors)                          | Pass             |
+| 9   | Original text preserved when a request fails        | WB-E2E-027, WB-E2E-028, WB-UI-020                            | Pass             |
+| 10  | A failed request shows a useful error               | WB-E2E-027, WB-E2E-028, WB-UI-020, WB-UI-027                 | Pass             |
+| 11  | Repeated actions give no duplicate or stale results | WB-E2E-026, WB-UI-018, WB-UI-019                             | Pass             |
+| 12  | Selection changes do not overwrite newer text       | WB-SEC-024, WB-SEC-025                                       | Pass             |
+| 13  | Restricted pages are handled gracefully             | WB-E2E-013, WB-SEC-012                                       | Pass             |
+| 14  | Settings persist when intended                      | Not applicable: there are no settings yet                    | n/a              |
+| 15  | Unsupported editors receive a safe fallback         | WB-E2E-012, WB-E2E-029                                       | Pass             |
+| —   | Never read password fields                          | WB-SEC-008, WB-SEC-010, WB-SEC-020                           | Pass             |
+| —   | No text sent over the network                       | WB-SEC-018                                                   | Pass             |
+| —   | Accessible keyboard navigation                      | WB-UI-006, WB-UI-021, WB-UI-024, WB-UI-025, WB-A11Y-001      | Pass (automated) |
+
+Defects found by these tests are recorded in [defects.md](defects.md).

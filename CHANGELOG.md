@@ -6,6 +6,11 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- End-to-end: the core user journey as one test; repeated actions; a text box removed mid-flow; a tab that moved to another site; an editor inside an embedded frame.
+- Automated accessibility scans (axe-core, WCAG 2.1 A/AA) of every popup state, light and dark. No violations.
+- Every end-to-end test now fails on any error logged by an extension page, with the log attached.
+- `docs/defects.md` and a requirements traceability table in `docs/test-cases.md`.
+
 - **Rich-text editors**: read and replace in `contenteditable`, tested against real ProseMirror, Quill and Lexical editors and a Gmail-style editor. Fixes are applied one word at a time, so bold text, links and paragraphs are kept, and each is verified after it lands; if an editor puts a change somewhere unexpected, WriteBetter stops and says so.
 - Text in editors is read as displayed: whitespace runs collapsed, line and paragraph breaks as single newlines.
 - `docs/compatibility.md`: tested, unsupported and untested editors.

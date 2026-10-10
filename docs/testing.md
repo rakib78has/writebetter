@@ -52,6 +52,15 @@ Chrome will not grant clipboard-read permission to an extension page in a test, 
 
 jsdom implements neither `isContentEditable` nor `execCommand`; `tests/component/page-script-rich.test.ts` stands in for both to test the mapping and fix-ordering logic in detail.
 
+### Diagnostics
+
+- Every end-to-end test watches all extension pages. Any uncaught error or console error fails the test, and the messages are attached to its report as `extension-errors.txt`. This catches problems no assertion is looking for. (Checked by deliberately logging an error: the test failed with the message attached.)
+- On failure, Playwright keeps a trace (`test-results/*/trace.zip`, open with `npx playwright show-trace`) and screenshots. CI uploads both.
+
+### Accessibility
+
+`tests/e2e/a11y.spec.ts` runs axe-core against WCAG 2.1 A and AA in every popup state a user can reach, in light and dark mode. Automated scans catch missing labels, contrast and ARIA misuse, but not everything, so a screen-reader pass stays on the manual list (WB-A11Y-002).
+
 ### What cannot be automated
 
 - Clicking Chrome's native right-click menu. The handler is integration-tested, and WB-E2E-015 proves that `chrome.action.openPopup()` works in this Chromium. Manual check: WB-MAN-002.
