@@ -20,6 +20,9 @@ test('opens the popup and updates counts as the user types', async ({ context, e
   await page.goto(extensionUrl(extensionId, 'popup/index.html'));
 
   await expect(page.getByRole('heading', { name: 'WriteBetter' })).toBeVisible();
+  // Opened directly, the popup's "active tab" is itself, which Chrome does
+  // not let an extension script. It must say so rather than fail silently.
+  await expect(page.getByRole('status')).toContainText('can’t read this page');
 
   const textbox = page.getByRole('textbox', { name: 'Text to improve' });
   await textbox.fill('Their going to the park 👋🏽');

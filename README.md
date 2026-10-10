@@ -2,19 +2,27 @@
 
 A Chrome extension that helps you fix grammar and improve the clarity and tone of text you write on the web, without sending your text anywhere by default.
 
-> **Status: Milestone 1 (scaffold).** The extension builds, loads in Chrome and opens a popup with a text field and live word and character counts. **No writing actions exist yet.** Grammar correction and rewriting arrive in later milestones (see [Roadmap](#roadmap)).
+> **Status: Milestone 2 (text selection).** WriteBetter can load text you select in a text box into its popup. **No writing actions exist yet.** Grammar correction and rewriting arrive in later milestones (see [Roadmap](#roadmap)).
 
 ## What works today
 
-- A popup where you can type or paste text and see word and character counts, with a 5,000-character limit.
-- Counts that handle emoji, accented characters and non-Latin scripts correctly.
-- No browser permissions and no network access. The extension cannot read any web page.
+- **Load your selection.** Select text in a text box on a web page, then either:
+  - click the WriteBetter icon,
+  - right-click and choose **Improve with WriteBetter**, or
+  - press **Alt+Shift+W** (change it at `chrome://extensions/shortcuts`).
+
+  The selected text appears in the popup.
+
+- Clear messages when there is nothing to load: no selection, an unsupported field, or a page Chrome doesn't let extensions read.
+- Password, verification-code and payment fields are never read.
+- Type or paste text directly, with word and character counts and a 5,000-character limit. Counts handle emoji, accented characters and non-Latin scripts.
+- No network access, and no access to any page until you invoke WriteBetter on it. See [privacy](docs/privacy.md).
 
 ## Requirements
 
 - Node.js 22.12 or newer (the CI uses the version in [.nvmrc](.nvmrc))
 - npm 10 or newer
-- Google Chrome 116 or newer, to load the extension
+- Google Chrome 127 or newer, to load the extension
 
 ## Setup
 
@@ -34,7 +42,7 @@ npx playwright install chromium   # only needed for end-to-end tests and icon ge
 | `npm run lint`           | ESLint with strict, type-aware rules                                        |
 | `npm run format:check`   | Prettier formatting check (`npm run format` fixes it)                       |
 | `npm run typecheck`      | TypeScript type check                                                       |
-| `npm test`               | Unit and component tests (Vitest)                                           |
+| `npm test`               | Unit, component and integration tests (Vitest)                              |
 | `npm run test:coverage`  | The same, with a coverage report and thresholds                             |
 | `npm run test:e2e`       | Loads the built extension in real Chromium (Playwright). Build first.       |
 | `npm run verify`         | Everything above except e2e and packaging, in CI order                      |
@@ -58,13 +66,15 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 ## Known limitations
 
 - No writing actions yet.
+- Only plain text boxes are supported: `<textarea>`, and `<input>` of type text, search, url or tel. Rich-text editors (such as Gmail's compose box) and fields inside embedded frames show a "paste it below instead" message. Editor support is planned for Milestone 5.
+- Chrome doesn't let extensions read its own `chrome://` pages, the Chrome Web Store, or other extensions' pages.
 - Word counts split on spaces, so languages written without spaces (Chinese, Japanese, Thai) count a whole run of text as one word.
 - The build prints a harmless `SOURCEMAP_BROKEN` warning from the Tailwind plugin. It affects only CSS source maps, which are not shipped.
 
 ## Roadmap
 
 1. **Scaffold** (done): build, popup, lint, tests, CI
-2. Text selection from inputs and textareas
+2. **Text selection** (done): inputs and textareas, via icon, context menu or shortcut
 3. Local grammar engine
 4. Rewrite actions, comparison, copy and replace
 5. Rich-text editor compatibility

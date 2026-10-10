@@ -16,7 +16,7 @@ const dist = join(root, 'dist');
 
 /** Permissions the extension may request. Adding one requires editing this
  *  list *and* justifying it in docs/security.md. */
-const ALLOWED_PERMISSIONS = new Set([]);
+const ALLOWED_PERMISSIONS = new Set(['activeTab', 'contextMenus', 'scripting']);
 
 /** Patterns that look like credentials. The extension must never ship any. */
 const SECRET_PATTERNS = [
@@ -31,10 +31,10 @@ const SECRET_PATTERNS = [
 const errors = [];
 const fail = (message) => errors.push(message);
 
-function requireFile(relativePath, reason, { allowEmpty = false } = {}) {
+function requireFile(relativePath, reason) {
   const full = join(dist, relativePath);
   if (!existsSync(full)) return fail(`Missing ${relativePath} (${reason})`);
-  if (!allowEmpty && statSync(full).size === 0) fail(`${relativePath} is empty (${reason})`);
+  if (statSync(full).size === 0) fail(`${relativePath} is empty (${reason})`);
 }
 
 function listFiles(dir) {
@@ -91,12 +91,7 @@ if (!csp.includes("script-src 'self'") || /unsafe-eval|unsafe-inline|https?:/.te
 
 // --- Referenced files -------------------------------------------------------
 
-// The worker has no event handlers until Milestone 2, so it builds to an empty
-// file, which Chrome loads without complaint. Drop `allowEmpty` once it does
-// real work, so a broken worker build is caught here again.
-requireFile(manifest.background?.service_worker, 'background.service_worker', {
-  allowEmpty: true,
-});
+requireFile(manifest.background?.service_worker, 'background.service_worker');
 requireFile(manifest.action?.default_popup, 'action.default_popup');
 for (const [size, path] of Object.entries(manifest.icons ?? {})) requireFile(path, `icons.${size}`);
 for (const [size, path] of Object.entries(manifest.action?.default_icon ?? {})) {

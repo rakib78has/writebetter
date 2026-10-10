@@ -13,13 +13,22 @@ export default defineConfig({
         },
       },
       {
-        // React components rendered into jsdom, a simulated DOM.
+        // Code that touches the DOM, including React components, run in
+        // jsdom (a simulated DOM).
         plugins: [react()],
         test: {
           name: 'component',
-          include: ['tests/component/**/*.test.tsx'],
+          include: ['tests/component/**/*.test.{ts,tsx}'],
           environment: 'jsdom',
           setupFiles: ['tests/helpers/setup-component.ts'],
+        },
+      },
+      {
+        // Chrome-facing modules wired to a fake Chrome API.
+        test: {
+          name: 'integration',
+          include: ['tests/integration/**/*.test.ts'],
+          environment: 'node',
         },
       },
     ],
@@ -27,8 +36,10 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov', 'json-summary'],
       reportsDirectory: 'coverage',
-      include: ['src/shared/**/*.ts', 'src/popup/**/*.tsx'],
-      exclude: ['src/popup/main.tsx'],
+      include: ['src/**/*.{ts,tsx}'],
+      // Thin entry points that only wire real Chrome APIs together. The
+      // end-to-end suite exercises them in a real browser.
+      exclude: ['src/popup/main.tsx', 'src/background/service-worker.ts'],
       thresholds: {
         lines: 90,
         functions: 90,
