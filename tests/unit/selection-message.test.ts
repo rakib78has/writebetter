@@ -20,12 +20,6 @@ describe('describeSelection', () => {
     ['no field', { status: 'no-field' }, 'neutral', /select text in a text box/i],
     ['a sensitive field', { status: 'sensitive-field' }, 'warning', /never reads password/i],
     [
-      'a rich-text editor',
-      { status: 'unsupported-field', reason: 'contenteditable' },
-      'warning',
-      /editor isn’t supported yet.*paste/i,
-    ],
-    [
       'a frame',
       { status: 'unsupported-field', reason: 'frame' },
       'warning',

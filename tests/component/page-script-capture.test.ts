@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { captureSelection } from '../../src/content/capture-selection.ts';
+import { runInPage } from '../../src/content/page-script.ts';
+
+const captureSelection = () => runInPage({ type: 'capture' });
 
 /**
- * captureSelection() against jsdom. The end-to-end suite runs the same
+ * runInPage({ type: 'capture' }) against jsdom. The end-to-end suite runs the same
  * function inside real Chromium; these tests cover the edge cases quickly.
  */
 
@@ -125,18 +127,7 @@ describe('captureSelection', () => {
     expect(captureSelection()).toMatchObject({ status: 'captured', text: 'Fixed', readOnly: true });
   });
 
-  // WB-INT-009
-  it('reports a rich-text editor as unsupported', () => {
-    const editor = mount(
-      '<div contenteditable="true" tabindex="0">Rich text</div>'
-    ) as HTMLDivElement;
-    // jsdom does not implement isContentEditable; real Chromium is covered
-    // by the end-to-end suite.
-    Object.defineProperty(editor, 'isContentEditable', { value: true });
-    editor.focus();
-
-    expect(captureSelection()).toEqual({ status: 'unsupported-field', reason: 'contenteditable' });
-  });
+  // WB-INT-009: rich-text editors are now captured; see page-script-rich.test.ts.
 
   // WB-INT-010
   it('reports a focused iframe as unsupported', () => {

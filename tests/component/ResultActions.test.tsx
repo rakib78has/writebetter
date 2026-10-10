@@ -4,8 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { ResultActions, type ReplaceTarget } from '../../src/popup/components/ResultActions.tsx';
 import type { ReplaceOutcome } from '../../src/popup/page-access.ts';
 
-const FIELD: ReplaceTarget = { kind: 'field', start: 11, end: 18, original: 'teh end' };
+const FIELD: ReplaceTarget = { kind: 'text-field', start: 11, end: 18, original: 'teh end' };
+const RICH: ReplaceTarget = {
+  kind: 'rich',
+  original: 'teh end',
+  fixes: [{ start: 0, end: 3, original: 'teh', replacement: 'the' }],
+};
 const CORRECTED = 'the end';
+
+type Refusal = Exclude<ReplaceOutcome['status'], 'replaced' | 'partial' | 'unexpected'>;
 
 function setup(
   target: ReplaceTarget = FIELD,
@@ -25,6 +32,11 @@ function setup(
     />
   );
   return { user, replaceText, copyText };
+}
+
+async function confirmReplace(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Replace on page' }));
+  await user.click(screen.getByRole('button', { name: 'Yes, replace' }));
 }
 
 describe('result actions: copy', () => {
@@ -49,7 +61,7 @@ describe('result actions: copy', () => {
   });
 });
 
-describe('result actions: replace on page', () => {
+describe('result actions: replace in a text field', () => {
   // WB-SEC-021
   it('never changes the page without a second, explicit confirmation', async () => {
     const { user, replaceText } = setup();
@@ -69,6 +81,7 @@ describe('result actions: replace on page', () => {
     await user.keyboard('{Enter}');
 
     expect(replaceText).toHaveBeenCalledWith({
+      kind: 'text-field',
       start: 11,
       end: 18,
       expected: 'teh end',
@@ -105,12 +118,12 @@ describe('result actions: replace on page', () => {
   // WB-UI-026
   it('undoes a replacement by putting the original back', async () => {
     const { user, replaceText } = setup(FIELD, [{ status: 'replaced' }, { status: 'replaced' }]);
-    await user.click(screen.getByRole('button', { name: 'Replace on page' }));
-    await user.click(screen.getByRole('button', { name: 'Yes, replace' }));
+    await confirmReplace(user);
 
     await user.click(await screen.findByRole('button', { name: 'Undo' }));
 
     expect(replaceText).toHaveBeenLastCalledWith({
+      kind: 'text-field',
       start: 11,
       end: 11 + CORRECTED.length,
       expected: CORRECTED,
@@ -122,7 +135,7 @@ describe('result actions: replace on page', () => {
   });
 
   // WB-UI-027
-  it.each<[ReplaceOutcome['status'], RegExp]>([
+  it.each<[Refusal, RegExp]>([
     ['changed', /has changed since WriteBetter read it/],
     ['field-gone', /no longer selected/],
     ['read-only', /can’t be edited/],
@@ -131,8 +144,7 @@ describe('result actions: replace on page', () => {
     ['page-unavailable', /can no longer reach that page/],
   ])('explains a "%s" result and does not offer to try again blindly', async (status, message) => {
     const { user } = setup(FIELD, [{ status }]);
-    await user.click(screen.getByRole('button', { name: 'Replace on page' }));
-    await user.click(screen.getByRole('button', { name: 'Yes, replace' }));
+    await confirmReplace(user);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
     expect(screen.queryByRole('button', { name: 'Replace on page' })).not.toBeInTheDocument();
@@ -147,9 +159,75 @@ describe('result actions: replace on page', () => {
       /select it there and open WriteBetter/,
     ],
     ['a read-only field', { kind: 'unavailable', reason: 'read-only' }, /read-only/],
+    [
+      'editor text edited in the popup',
+      { kind: 'unavailable', reason: 'edited' },
+      /no longer matches the editor/,
+    ],
   ])('offers only Copy for %s, and says why', (_label, target, message) => {
     setup(target);
     expect(screen.queryByRole('button', { name: 'Replace on page' })).not.toBeInTheDocument();
     expect(screen.getByText(message)).toBeInTheDocument();
+  });
+});
+
+describe('result actions: replace in a rich-text editor', () => {
+  // WB-UI-034
+  it('asks before making the changes, and says formatting is kept', async () => {
+    const { user } = setup(RICH);
+    await user.click(screen.getByRole('button', { name: 'Replace on page' }));
+
+    expect(screen.getByRole('group', { name: 'Confirm replacement' })).toHaveTextContent(
+      'Make this change in the text you selected on the page? Formatting such as bold text and links is kept.'
+    );
+  });
+
+  // WB-UI-035
+  it('counts several changes in the confirmation', async () => {
+    const { user } = setup({
+      ...RICH,
+      fixes: [
+        { start: 0, end: 3, original: 'teh', replacement: 'the' },
+        { start: 4, end: 7, original: 'end', replacement: 'End' },
+      ],
+    });
+    await user.click(screen.getByRole('button', { name: 'Replace on page' }));
+
+    expect(screen.getByRole('group', { name: 'Confirm replacement' })).toHaveTextContent(
+      'Make these 2 changes'
+    );
+  });
+
+  // WB-UI-036
+  it('sends the fixes, not a whole replacement, and points to the editor’s own undo', async () => {
+    const { user, replaceText } = setup(RICH);
+    await confirmReplace(user);
+
+    expect(replaceText).toHaveBeenCalledWith({
+      kind: 'rich',
+      expected: 'teh end',
+      fixes: [{ start: 0, end: 3, original: 'teh', replacement: 'the' }],
+    });
+    expect(await screen.findByText(/press Ctrl\+Z in the editor/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+  });
+
+  // WB-UI-037
+  it('reports a partial result honestly', async () => {
+    const { user } = setup(RICH, [{ status: 'partial', applied: 2, total: 3 }]);
+    await confirmReplace(user);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Made 2 of 3 changes.');
+  });
+
+  // WB-UI-038
+  it('warns clearly when the editor put a change somewhere unexpected', async () => {
+    const { user } = setup(RICH, [{ status: 'unexpected', applied: 1 }]);
+    await confirmReplace(user);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('didn’t apply a change where WriteBetter expected');
+    expect(alert).toHaveTextContent('1 change was made correctly');
+    expect(alert).toHaveTextContent('press Ctrl+Z in the editor');
   });
 });

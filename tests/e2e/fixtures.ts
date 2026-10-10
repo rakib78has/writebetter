@@ -1,6 +1,6 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { extname, join, resolve } from 'node:path';
 import {
   test as base,
   chromium,
@@ -31,6 +31,12 @@ const FIXTURES_PATH = resolve(import.meta.dirname, '../fixtures');
 export const FIXTURE_ORIGIN = 'https://fixture.test';
 /** A second origin serving the same pages, for cross-origin navigation. */
 export const OTHER_FIXTURE_ORIGIN = 'https://other.fixture.test';
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+};
 
 export interface ExtensionFixtures {
   context: BrowserContext;
@@ -66,9 +72,15 @@ export const test = base.extend<ExtensionFixtures>({
 
     await context.route(/^https:\/\/(other\.)?fixture\.test\//, async (route) => {
       const name = new URL(route.request().url()).pathname.slice(1);
+      // /editors/... are the rich-text editor pages built by
+      // scripts/build-test-editors.mjs; everything else is a plain fixture.
+      const file = name.startsWith('editors/')
+        ? join(FIXTURES_PATH, '.built-editors', name.slice('editors/'.length))
+        : join(FIXTURES_PATH, name);
       try {
-        const body = await readFile(join(FIXTURES_PATH, name), 'utf8');
-        await route.fulfill({ contentType: 'text/html', body });
+        const body = await readFile(file);
+        const contentType = CONTENT_TYPES[extname(file)] ?? 'application/octet-stream';
+        await route.fulfill({ contentType, body });
       } catch {
         await route.fulfill({ status: 404, body: `No fixture named ${name}` });
       }
@@ -163,4 +175,35 @@ export async function selectInField(page: Page, selector: string, start: number,
     },
     [start, end] as const
   );
+}
+
+/**
+ * Focuses a rich-text editor and selects from the start of `from` to the end
+ * of `to`, both matched as text inside it.
+ */
+export async function selectInEditor(page: Page, selector: string, from: string, to: string) {
+  await page.locator(selector).evaluate(
+    (host, [first, last]) => {
+      (host as HTMLElement).focus();
+      const texts: Text[] = [];
+      const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) texts.push(walker.currentNode as Text);
+      const find = (needle: string, atEnd: boolean): [Text, number] => {
+        for (const node of texts) {
+          const index = node.data.indexOf(needle);
+          if (index >= 0) return [node, atEnd ? index + needle.length : index];
+        }
+        throw new Error(`"${needle}" not found in the editor`);
+      };
+      const range = document.createRange();
+      range.setStart(...find(first, false));
+      range.setEnd(...find(last, true));
+      const selection = document.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    },
+    [from, to] as const
+  );
+  // Editors pick up DOM selection changes on the next "selectionchange".
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
 }

@@ -96,7 +96,7 @@ test('loads a read-only selection and says it cannot be changed', async ({
 });
 
 // WB-E2E-011
-test('offers paste as a fallback in a rich-text editor', async ({
+test('asks for a selection when the caret is in a rich-text editor', async ({
   openFixture,
   invokeExtensionOn,
 }) => {
@@ -105,8 +105,9 @@ test('offers paste as a fallback in a rich-text editor', async ({
 
   const popup = await invokeExtensionOn(page);
 
-  await expect(popup.getByRole('status')).toContainText('editor isn’t supported yet');
-  await expect(popup.getByRole('status')).toContainText('paste it below');
+  // Rich-text editors are supported (see rich-editors.spec.ts); with only
+  // a caret there is nothing to load yet.
+  await expect(popup.getByRole('status')).toContainText('No text is selected');
 });
 
 // WB-E2E-012

@@ -1,6 +1,6 @@
 # Security
 
-## Threat model (Milestone 4)
+## Threat model (Milestone 5)
 
 | Asset                 | Threat                                                        | Current mitigation                                                                                                                                                           |
 | --------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -16,6 +16,8 @@
 | Page text             | Changed without the user agreeing                             | Two explicit clicks ("Replace on page", "Yes, replace"); nothing runs on the page before the second. WB-SEC-021.                                                             |
 | Page text             | Newer edits overwritten by a stale result                     | The page checks the exact expected text at the exact offsets before changing anything; refuses otherwise. WB-SEC-019, WB-SEC-024.                                            |
 | Page text             | Partial or truncated change                                   | Refuses up front if the result would exceed `maxlength`; verifies the new text is present afterwards.                                                                        |
+| Rich-text editor text | An editor applies a change to the wrong place                 | Wait for `selectionchange` before each edit; verify the editor's whole text after each; stop at once if it differs. Mutation-tested against Lexical.                         |
+| Rich-text editor text | Formatting or structure destroyed                             | Only changed words are edited; fixes spanning breaks or `contenteditable="false"` text are skipped. WB-SEC-026, WB-E2E-023.                                                  |
 | Sensitive fields      | Written to, or read during a write                            | `replaceInField` rejects password, one-time-code and payment fields before touching their value. WB-SEC-020.                                                                 |
 | Worker messages       | Malformed message, or an error that echoes text               | Both directions validated in `protocol.ts`; error responses carry no message. WB-SEC-014–016.                                                                                |
 | The extension package | Runs code fetched at runtime                                  | CSP `script-src 'self'`; `validate:build` rejects remote scripts and imports.                                                                                                |
@@ -43,6 +45,8 @@ Chrome grants `activeTab` for one tab and keeps it until that tab **navigates to
 ### Frames
 
 The capture function runs only in the tab's main frame. `activeTab` doesn't cover cross-origin iframes, so injecting into all frames would fail on most sites anyway. A focused iframe is reported as unsupported.
+
+Dev-only dependency note: `quill` 2.0.3 has a low-severity advisory (XSS in its HTML export). Quill is used only to build local test pages, never shipped, and the tests do not use HTML export.
 
 ## Content Security Policy
 

@@ -6,6 +6,14 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- **Rich-text editors**: read and replace in `contenteditable`, tested against real ProseMirror, Quill and Lexical editors and a Gmail-style editor. Fixes are applied one word at a time, so bold text, links and paragraphs are kept, and each is verified after it lands; if an editor puts a change somewhere unexpected, WriteBetter stops and says so.
+- Text in editors is read as displayed: whitespace runs collapsed, line and paragraph breaks as single newlines.
+- `docs/compatibility.md`: tested, unsupported and untested editors.
+
+### Changed
+
+- The two injected page functions are merged into one, `runInPage` (`src/content/page-script.ts`), which reads and writes the page and shares helpers. Replacing is now asynchronous.
+
 - **Change view**: the original text with each fix marked inline (removed and added text, announced to screen readers).
 - **Copy** the corrected text.
 - **Replace on page**, after an explicit confirmation step. Refuses, changing nothing, if the text on the page has changed, the field is gone or read-only, or the result would exceed `maxlength`. Uses the browser's own editing command, so Ctrl+Z in the page undoes it and page frameworks see a normal edit; an **Undo** button does the same from the popup.

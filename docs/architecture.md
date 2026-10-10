@@ -6,11 +6,11 @@ This document describes what is built today and the planned shape it is growing 
 
 A Chrome extension is not one program. It is several separate JavaScript environments that cannot share memory and can only exchange messages:
 
-| Context             | Where it runs                                              | Lifetime                           | WriteBetter's use                                                                   |
-| ------------------- | ---------------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------- |
-| **Popup**           | Its own page, when the icon is clicked                     | Destroyed the moment it closes     | The main interface. Built with React.                                               |
-| **Service worker**  | Background, no DOM                                         | Stopped by Chrome after ~30 s idle | Registers the context menu and opens the popup when it is used.                     |
-| **Injected script** | Inside a web page, isolated from the page's own JavaScript | One call, then gone                | `captureSelection()` reads the selection. Replacing text comes later **(planned)**. |
+| Context             | Where it runs                                              | Lifetime                           | WriteBetter's use                                                                                  |
+| ------------------- | ---------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Popup**           | Its own page, when the icon is clicked                     | Destroyed the moment it closes     | The main interface. Built with React.                                                              |
+| **Service worker**  | Background, no DOM                                         | Stopped by Chrome after ~30 s idle | Registers the context menu and opens the popup when it is used.                                    |
+| **Injected script** | Inside a web page, isolated from the page's own JavaScript | One call, then gone                | `runInPage()` reads the selection and writes fixes back. Replacing text comes later **(planned)**. |
 
 Two consequences shape the design:
 
@@ -32,8 +32,8 @@ src/
     service-worker.ts      Registers listeners at startup
     context-menu.ts        Menu registration and click handling
   content/
-    capture-selection.ts   Self-contained function injected to read the selection
-    replace-in-field.ts    Self-contained function injected to write it back
+    page-script.ts         runInPage(): the one self-contained function injected into
+                           pages, to read the selection and to write fixes back
   writing/                The writing engine. Knows nothing about Chrome or the UI
     types.ts               Issue, GrammarChecker, GrammarCheckError
     fix-grammar.ts         The "Fix grammar" action: check → safeguards → apply
@@ -102,6 +102,10 @@ verify the new text is there → "replaced"; select it so the user sees it
 ```
 
 Undo runs the same function in reverse: it expects the corrected text and puts the original back, so it too refuses if the user has edited in between.
+
+## Rich-text editors (Milestone 5)
+
+See [compatibility.md](compatibility.md#how-replacing-works-in-a-rich-text-editor). The capture side walks the selected DOM, builds the text as displayed, and keeps a map from each character back to its text node and offset. The replace side uses that map to edit only the words that change, waiting for the editor to see each new selection and verifying the editor's text after each edit.
 
 ## Planned data flow
 
@@ -178,3 +182,15 @@ The change view is drawn from the exact fixes `applyFixes` made, not by diffing 
 ### D14. No AI, for now
 
 Tone and style rewrites (Make Professional, Make Friendly and so on) need a language model. The decision for now is to keep WriteBetter entirely free and local, so those actions are not built. The `GrammarChecker` interface and the result UI do not assume an engine, so a rewrite engine can be added later without reworking them.
+
+### D15. One injected function for reading and writing
+
+An injected function must be self-contained, so two separate functions could not share the DOM-mapping code both need. `runInPage(message)` handles `capture` and `replace` and shares its helpers internally. The alternative, injecting a helper file first and calling it, needs a second (IIFE) build and leaves a global in the page's isolated world.
+
+### D16. Fixes applied one at a time in rich editors
+
+Measured in Chromium: replacing a whole selection with `insertText` deletes bold text and links inside it, and turns each "\n" into extra empty paragraphs. Editing only the changed words avoids both. The cost is one undo step per change in some editors.
+
+### D17. Real editor libraries in the end-to-end tests
+
+Editors like Lexical take over editing with their own model, so a plain `contenteditable` test page proves little about them. ProseMirror, Quill and Lexical are dev dependencies used only to build test pages (`scripts/build-test-editors.mjs`). Testing against real Lexical is what revealed the stale-selection corruption.

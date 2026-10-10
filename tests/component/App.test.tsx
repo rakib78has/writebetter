@@ -66,7 +66,7 @@ async function renderPopup(
   const textbox = screen.getByRole('textbox', { name: 'Text to improve' });
   // Let the selection load settle so each test starts from a stable state.
   await screen.findByText(
-    /select text in a text box|loaded the text|no text is selected|can’t read|never reads|isn’t supported|went wrong/i
+    /select text in a text box|loaded the text|no text is selected|can’t read|never reads|supported|went wrong/i
   );
   const fixButton = screen.getByRole('button', { name: 'Fix grammar' });
   return { user, textbox, fixButton };
@@ -192,7 +192,7 @@ describe('popup loading the page selection', () => {
     ['nothing selected', { status: 'empty-selection' }, /no text is selected/i],
     ['a password field', { status: 'sensitive-field' }, /never reads password/i],
     ['a restricted page', { status: 'page-unavailable' }, /can’t read this page/i],
-    ['a rich-text editor', { status: 'unsupported-field', reason: 'contenteditable' }, /paste/i],
+    ['an embedded frame', { status: 'unsupported-field', reason: 'frame' }, /paste/i],
   ])('explains %s and leaves the field empty for typing', async (_label, outcome, message) => {
     const { textbox } = await renderPopup(outcome);
     expect(screen.getByRole('status')).toHaveTextContent(message);

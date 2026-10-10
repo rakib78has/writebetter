@@ -7,7 +7,6 @@ export interface SelectionMessage {
 }
 
 const UNSUPPORTED: Record<UnsupportedReason, string> = {
-  contenteditable: 'This kind of editor isn’t supported yet.',
   frame: 'Text boxes inside embedded frames aren’t supported yet.',
   'input-type': 'This kind of field isn’t supported.',
 };

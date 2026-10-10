@@ -1,34 +1,45 @@
 /**
  * The result of reading the user's selection from a web page.
  *
- * Produced by captureSelection() inside the page and returned to the popup.
- * The page is not trusted, so the popup checks the shape with
+ * Produced by runInPage() inside the page and returned to the popup. The
+ * page is not trusted, so the popup checks the shape with
  * parseCaptureResult() before using it.
  */
 export type CaptureResult =
-  | {
-      status: 'captured';
-      text: string;
-      field: 'input' | 'textarea';
-      /** Character offsets of the selection in the field's value, kept for
-       *  replacing the text later. */
-      selection: { start: number; end: number };
-      /** The field can be read but not edited. */
-      readOnly: boolean;
-    }
-  /** Focus is in a supported text field, but nothing is selected. */
+  | TextFieldCapture
+  | RichCapture
+  /** Focus is in a supported field or editor, but nothing is selected. */
   | { status: 'empty-selection' }
-  /** Focus is not in a text field at all. */
+  /** Focus is not in a text field or editor at all. */
   | { status: 'no-field' }
   /** A password, one-time-code or payment field. Its value is never read. */
   | { status: 'sensitive-field' }
-  /** A text-editing surface WriteBetter does not support yet. */
+  /** A text-editing surface WriteBetter does not support. */
   | { status: 'unsupported-field'; reason: UnsupportedReason };
 
-export type UnsupportedReason = 'contenteditable' | 'frame' | 'input-type';
+/** Text selected in an <input> or <textarea>. */
+export interface TextFieldCapture {
+  status: 'captured';
+  text: string;
+  field: 'input' | 'textarea';
+  /** Offsets of the selection in the field's value, for replacing it later. */
+  selection: { start: number; end: number };
+  /** The field can be read but not edited. */
+  readOnly: boolean;
+}
+
+/** Text selected in a rich-text editor (a contenteditable element). Line and
+ *  paragraph breaks are represented as "\n". */
+export interface RichCapture {
+  status: 'captured';
+  text: string;
+  field: 'rich';
+  readOnly: false;
+}
+
+export type UnsupportedReason = 'frame' | 'input-type';
 
 const UNSUPPORTED_REASONS: readonly string[] = [
-  'contenteditable',
   'frame',
   'input-type',
 ] satisfies UnsupportedReason[];
@@ -62,6 +73,9 @@ export function parseCaptureResult(value: unknown): CaptureResult | null {
     case 'captured': {
       const { text, field, selection, readOnly } = value;
       if (typeof text !== 'string' || text.length === 0) return null;
+      if (field === 'rich') {
+        return readOnly === false ? { status: 'captured', text, field, readOnly } : null;
+      }
       if (field !== 'input' && field !== 'textarea') return null;
       if (typeof readOnly !== 'boolean' || !isRecord(selection)) return null;
       const { start, end } = selection;

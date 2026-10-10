@@ -2,7 +2,7 @@
 
 A Chrome extension that helps you fix grammar and improve the clarity and tone of text you write on the web, without sending your text anywhere by default.
 
-> **Status: Milestone 4 (copy and replace).** Select text on a page, fix its grammar and spelling on your device, see exactly what changed, then copy the result or put it back on the page. Free, with no AI and no server.
+> **Status: Milestone 5 (rich-text editors).** Select text in a text box or a rich-text editor, fix its grammar and spelling on your device, see exactly what changed, then copy the result or put it back on the page, with formatting kept. Free, with no AI and no server.
 
 ## What works today
 
@@ -15,6 +15,7 @@ A Chrome extension that helps you fix grammar and improve the clarity and tone o
 
 - **Fix grammar.** Corrects common grammar, spelling and punctuation mistakes using [Harper](https://github.com/automattic/harper), which runs inside the extension. Your text never leaves your device. You see the corrected text and a list of every change.
 - **See every change.** Removed words are struck through and added words highlighted, so nothing changes without you seeing it.
+- **Works in rich-text editors**: plain `contenteditable` (Gmail-style), ProseMirror, Quill and Lexical are tested. Only the words that change are edited, so bold text, links and paragraphs are kept. See [compatibility](docs/compatibility.md).
 - **Copy, or replace on the page.** Replacing asks you to confirm first, refuses if you have edited the text since, and can be undone with the **Undo** button or Ctrl+Z in the page.
 - **Safe by design.** Names, URLs, email addresses, code and file names are never "corrected". Anything WriteBetter is unsure about is listed for you to check, not changed.
 - Clear messages when there is nothing to load: no selection, an unsupported field, or a page Chrome doesn't let extensions read.
@@ -71,9 +72,9 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 
 - Fix grammar is English only, and rule-based: it catches common mistakes but misses some (for example "your welcome"). See [grammar engine](docs/grammar-engine.md).
 - No tone or style rewriting (Make Professional, Make Friendly, and so on). Those need an AI model, and WriteBetter is deliberately free and local-only for now.
-- Replace works in plain text boxes only, like reading does. If a site does unusual things with its text boxes, use Copy instead.
+- In a rich-text editor, undo with Ctrl+Z in the editor (there is no Undo button there). If an editor applies a change unexpectedly, WriteBetter stops and says so.
 - The extension is about 8 MB to download (16 MB installed), mostly the grammar engine.
-- Only plain text boxes are supported: `<textarea>`, and `<input>` of type text, search, url or tel. Rich-text editors (such as Gmail's compose box) and fields inside embedded frames show a "paste it below instead" message. Editor support is planned for Milestone 5.
+- Editors inside embedded frames (some TinyMCE and CKEditor setups) and canvas-based editors (Google Docs) are not supported. Specific sites have not been verified by hand yet; see [compatibility](docs/compatibility.md).
 - Chrome doesn't let extensions read its own `chrome://` pages, the Chrome Web Store, or other extensions' pages.
 - Word counts split on spaces, so languages written without spaces (Chinese, Japanese, Thai) count a whole run of text as one word.
 - The build prints a harmless `SOURCEMAP_BROKEN` warning from the Tailwind plugin. It affects only CSS source maps, which are not shipped.
@@ -84,7 +85,7 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 2. **Text selection** (done): inputs and textareas, via icon, context menu or shortcut
 3. **Local grammar engine** (done): Fix grammar with Harper, on-device
 4. **Copy and replace** (done): change view, copy, confirmed replace with undo. AI rewrite actions are on hold (free, local-only for now).
-5. Rich-text editor compatibility
+5. **Rich-text editors** (done): contenteditable, ProseMirror, Quill, Lexical, tested
 6. Full browser test journey
 7. CI/CD and security hardening
 8. Release readiness
@@ -93,6 +94,7 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [Editor compatibility](docs/compatibility.md): what is tested, what is not
 - [Grammar engine](docs/grammar-engine.md): choice, measurements, accuracy, limits
 - [Security](docs/security.md)
 - [Privacy](docs/privacy.md)

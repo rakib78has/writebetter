@@ -24,13 +24,17 @@ describe('parseCaptureResult', () => {
 
   // WB-UNIT-016
   it('accepts each known unsupported reason and rejects others', () => {
-    for (const reason of ['contenteditable', 'frame', 'input-type']) {
+    for (const reason of ['frame', 'input-type']) {
       expect(parseCaptureResult({ status: 'unsupported-field', reason })).toEqual({
         status: 'unsupported-field',
         reason,
       });
     }
     expect(parseCaptureResult({ status: 'unsupported-field', reason: 'canvas' })).toBeNull();
+    // Rich-text editors are supported since Milestone 5.
+    expect(
+      parseCaptureResult({ status: 'unsupported-field', reason: 'contenteditable' })
+    ).toBeNull();
     expect(parseCaptureResult({ status: 'unsupported-field' })).toBeNull();
   });
 

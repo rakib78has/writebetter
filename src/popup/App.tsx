@@ -36,13 +36,31 @@ export interface AppProps {
 }
 
 /** Where a result could be written back, given how the text was obtained. */
-function replaceTargetFor(selection: SelectionOutcome | 'loading'): ReplaceTarget {
+function replaceTargetFor(
+  selection: SelectionOutcome | 'loading',
+  report: GrammarReport
+): ReplaceTarget {
   if (selection === 'loading' || selection.status !== 'captured') {
     return { kind: 'unavailable', reason: 'typed' };
   }
+  if (selection.field === 'rich') {
+    // Fixes are applied in place, at offsets into the checked text, so that
+    // text must be exactly what the editor holds.
+    if (report.original !== selection.text) return { kind: 'unavailable', reason: 'edited' };
+    return {
+      kind: 'rich',
+      original: selection.text,
+      fixes: report.fixed.map(({ start, end, original, replacements }) => ({
+        start,
+        end,
+        original,
+        replacement: replacements[0] ?? '',
+      })),
+    };
+  }
   if (selection.readOnly) return { kind: 'unavailable', reason: 'read-only' };
   return {
-    kind: 'field',
+    kind: 'text-field',
     start: selection.selection.start,
     end: selection.selection.end,
     original: selection.text,
@@ -173,7 +191,7 @@ export function App({ loadSelection, grammar, replaceText, copyText }: AppProps)
           <GrammarResults
             key={check.run}
             report={check.report}
-            target={replaceTargetFor(selection)}
+            target={replaceTargetFor(selection, check.report)}
             replaceText={replaceText}
             copyText={copyText}
           />

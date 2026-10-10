@@ -1,5 +1,4 @@
-import { captureSelection } from '../content/capture-selection.ts';
-import { replaceInField } from '../content/replace-in-field.ts';
+import { runInPage, type PageRequest } from '../content/page-script.ts';
 import { parseCaptureResult, type CaptureResult } from '../shared/capture.ts';
 import { parseReplaceResult, type ReplaceRequest, type ReplaceResult } from '../shared/replace.ts';
 
@@ -38,13 +37,30 @@ async function findTargetTabId(api: PageApi, search: string): Promise<number | u
   return tab?.id;
 }
 
+/**
+ * Runs the page script in the target tab's main frame. The answer is raw and
+ * unvalidated. Throws if Chrome refuses to script the page.
+ */
+async function sendToPage(
+  api: PageApi,
+  search: string,
+  message: PageRequest
+): Promise<{ reached: false } | { reached: true; answer: unknown }> {
+  const tabId = await findTargetTabId(api, search);
+  if (tabId === undefined) return { reached: false };
+  const results = await api.scripting.executeScript({
+    target: { tabId },
+    func: runInPage,
+    args: [message],
+  });
+  return { reached: true, answer: results[0]?.result };
+}
+
 /** Reads the user's selection from the target tab's main frame. */
 export async function loadSelection(api: PageApi, search: string): Promise<SelectionOutcome> {
-  let results: chrome.scripting.InjectionResult[];
+  let sent: Awaited<ReturnType<typeof sendToPage>>;
   try {
-    const tabId = await findTargetTabId(api, search);
-    if (tabId === undefined) return { status: 'page-unavailable' };
-    results = await api.scripting.executeScript({ target: { tabId }, func: captureSelection });
+    sent = await sendToPage(api, search, { type: 'capture' });
   } catch {
     // Chrome refuses to script browser pages, the Web Store and pages the
     // user has not granted access to. The error text is not a stable API, so
@@ -52,13 +68,14 @@ export async function loadSelection(api: PageApi, search: string): Promise<Selec
     return { status: 'page-unavailable' };
   }
 
-  return parseCaptureResult(results[0]?.result) ?? { status: 'failed' };
+  if (!sent.reached) return { status: 'page-unavailable' };
+  return parseCaptureResult(sent.answer) ?? { status: 'failed' };
 }
 
 export type ReplaceOutcome = ReplaceResult | { status: 'page-unavailable' };
 
 /**
- * Replaces text in the target tab's focused field. Call only after the user
+ * Replaces text in the target tab's focused field or editor. Call only after the user
  * has confirmed: this changes their page.
  */
 export async function replaceOnPage(
@@ -66,19 +83,14 @@ export async function replaceOnPage(
   search: string,
   request: ReplaceRequest
 ): Promise<ReplaceOutcome> {
-  let results: chrome.scripting.InjectionResult[];
+  let sent: Awaited<ReturnType<typeof sendToPage>>;
   try {
-    const tabId = await findTargetTabId(api, search);
-    if (tabId === undefined) return { status: 'page-unavailable' };
-    results = await api.scripting.executeScript({
-      target: { tabId },
-      func: replaceInField,
-      args: [request],
-    });
+    sent = await sendToPage(api, search, { type: 'replace', request });
   } catch {
     // Most often the tab moved to another site, which ends activeTab access.
     return { status: 'page-unavailable' };
   }
 
-  return parseReplaceResult(results[0]?.result);
+  if (!sent.reached) return { status: 'page-unavailable' };
+  return parseReplaceResult(sent.answer);
 }

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { captureSelection } from '../../src/content/capture-selection.ts';
-import { replaceInField } from '../../src/content/replace-in-field.ts';
+import { runInPage } from '../../src/content/page-script.ts';
 import { loadSelection, replaceOnPage, type PageApi } from '../../src/popup/page-access.ts';
 
 const CAPTURE = {
@@ -26,12 +25,16 @@ function fakeChrome({
 
 describe('loadSelection', () => {
   // WB-INT-012
-  it('injects the capture function into the active tab of the popup window', async () => {
+  it('injects the page script, asking it to capture, into the active tab of the popup window', async () => {
     const { api, query, executeScript } = fakeChrome();
 
     await expect(loadSelection(api, '')).resolves.toEqual(CAPTURE);
     expect(query).toHaveBeenCalledWith({ active: true, currentWindow: true });
-    expect(executeScript).toHaveBeenCalledWith({ target: { tabId: 7 }, func: captureSelection });
+    expect(executeScript).toHaveBeenCalledWith({
+      target: { tabId: 7 },
+      func: runInPage,
+      args: [{ type: 'capture' }],
+    });
   });
 
   // WB-INT-013
@@ -88,18 +91,24 @@ describe('loadSelection', () => {
 });
 
 describe('replaceOnPage', () => {
-  const REQUEST = { start: 0, end: 3, expected: 'teh', replacement: 'the' };
+  const REQUEST = {
+    kind: 'text-field' as const,
+    start: 0,
+    end: 3,
+    expected: 'teh',
+    replacement: 'the',
+  };
   const replaced = () => Promise.resolve([{ frameId: 0, result: { status: 'replaced' } }]);
 
   // WB-INT-044
-  it('injects the replace function, with the request, into the target tab only', async () => {
+  it('injects the page script, with the replace request, into the target tab only', async () => {
     const { api, executeScript } = fakeChrome({ inject: replaced });
 
     await expect(replaceOnPage(api, '?tab=42', REQUEST)).resolves.toEqual({ status: 'replaced' });
     expect(executeScript).toHaveBeenCalledWith({
       target: { tabId: 42 },
-      func: replaceInField,
-      args: [REQUEST],
+      func: runInPage,
+      args: [{ type: 'replace', request: REQUEST }],
     });
   });
 

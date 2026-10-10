@@ -2,7 +2,7 @@
 
 Status records the most recent execution. A test is marked **Pass** only after it has actually run.
 
-Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 267 Vitest tests and 26 Playwright tests passed. Milestone 1 also passed in CI (PR #1).
+Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 284 Vitest tests and 34 Playwright tests passed. CI passed for Milestones 1–3 (PRs #1 and #2).
 
 Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run build` and the Playwright Chromium install.
 
@@ -65,41 +65,46 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 
 ## UI (component)
 
-| ID        | Module         | Scenario                                      | Steps                                       | Expected                                                        | Status | Automated |
-| --------- | -------------- | --------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------- | ------ | --------- |
-| WB-UI-001 | popup          | Renders heading and labelled field            | Render                                      | `h1` "WriteBetter"; textbox named "Text to improve"             | Pass   | Yes       |
-| WB-UI-002 | popup          | Initial state                                 | Render, nothing selected                    | "0 words · 0 / 5,000 characters"; no alert; not invalid         | Pass   | Yes       |
-| WB-UI-003 | popup          | Live counts, singular/plural                  | Type "Hello", then " world"                 | "1 word · 5", then "2 words · 11"                               | Pass   | Yes       |
-| WB-UI-004 | popup          | Over-limit warning                            | Paste 5,001 characters                      | Alert "This text is too long"; field `aria-invalid`             | Pass   | Yes       |
-| WB-UI-005 | popup          | Warning clears                                | Paste 5,001, press Backspace                | No alert; field valid                                           | Pass   | Yes       |
-| WB-UI-006 | popup          | Keyboard reachable                            | Press Tab                                   | Textbox focused                                                 | Pass   | Yes       |
-| WB-UI-007 | popup          | Honest about missing features                 | Render                                      | "not available" notice; no buttons                              | Pass   | Yes       |
-| WB-UI-008 | popup          | Loading state, then selection fills the field | Resolve loader with a capture               | Status "Reading your selection…", then "Loaded…"; field filled  | Pass   | Yes       |
-| WB-UI-009 | popup          | Typed text is never overwritten               | Type, then resolve loader with a capture    | Field keeps the typed text                                      | Pass   | Yes       |
-| WB-UI-010 | popup          | Read-only field mentioned                     | Capture with `readOnly`                     | Status mentions read-only                                       | Pass   | Yes       |
-| WB-UI-011 | popup          | Non-capture outcomes explained                | Empty selection, password, restricted, rich | Matching status; field left empty                               | Pass   | Yes       |
-| WB-UI-012 | popup          | Selection read once per opening               | Render                                      | Loader called exactly once                                      | Pass   | Yes       |
-| WB-UI-013 | popup          | Fix grammar availability                      | Empty, spaces, text, over limit             | Disabled, disabled, enabled, disabled                           | Pass   | Yes       |
-| WB-UI-014 | popup          | Progress then results                         | Click; resolve with one fix                 | "Checking…", then corrected text, "Fixed 1 problem", message    | Pass   | Yes       |
-| WB-UI-015 | popup          | Original preserved                            | Click Fix grammar                           | Input field unchanged                                           | Pass   | Yes       |
-| WB-UI-016 | popup          | Review-only issues                            | Resolve with non-auto-fix issue             | "1 possible problem…"; no corrected text                        | Pass   | Yes       |
-| WB-UI-017 | popup          | Nothing to fix                                | Resolve with []                             | "No problems found."                                            | Pass   | Yes       |
-| WB-UI-018 | popup          | Results cleared on edit                       | Fix, then type                              | Results gone                                                    | Pass   | Yes       |
-| WB-UI-019 | popup          | Late result for edited text                   | Click, type, then resolve                   | Result dropped                                                  | Pass   | Yes       |
-| WB-UI-020 | popup          | Engine failure / timeout                      | Reject with each reason                     | Alert with matching advice; text kept; can retry                | Pass   | Yes       |
-| WB-UI-021 | popup          | Keyboard                                      | Focus button, Enter                         | Check runs                                                      | Pass   | Yes       |
-| WB-UI-022 | result actions | Copy                                          | Click Copy                                  | Clipboard gets corrected text; "Copied"                         | Pass   | Yes       |
-| WB-UI-023 | result actions | Copy fails                                    | Clipboard rejects                           | Manual-copy advice                                              | Pass   | Yes       |
-| WB-UI-024 | result actions | Confirm and replace                           | Replace, Enter on focused confirm           | Exact request sent; "Replaced"                                  | Pass   | Yes       |
-| WB-UI-025 | result actions | Cancel                                        | Cancel button; Escape                       | Nothing sent; back to start                                     | Pass   | Yes       |
-| WB-UI-026 | result actions | Undo                                          | Replace, then Undo                          | Reverse request; "original text is back"; Replace offered again | Pass   | Yes       |
-| WB-UI-027 | result actions | Each refusal                                  | 6 outcomes                                  | Matching alert; no blind retry; Copy still there                | Pass   | Yes       |
-| WB-UI-028 | result actions | No target                                     | Typed text; read-only                       | Copy only, with reason                                          | Pass   | Yes       |
-| WB-UI-029 | change view    | Inline marks                                  | I has a apple.                              | del/ins with screen-reader labels                               | Pass   | Yes       |
-| WB-UI-030 | change view    | Removal                                       | and and done                                | del only                                                        | Pass   | Yes       |
-| WB-UI-031 | popup          | Replace offered for page text                 | Captured, editable                          | Replace button; change view                                     | Pass   | Yes       |
-| WB-UI-032 | popup          | Copy only                                     | Typed text; read-only field                 | No Replace button                                               | Pass   | Yes       |
-| WB-UI-033 | popup          | Fresh actions per result                      | Confirm, edit, check again                  | No stale confirmation                                           | Pass   | Yes       |
+| ID        | Module         | Scenario                                      | Steps                                       | Expected                                                            | Status | Automated |
+| --------- | -------------- | --------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------- | ------ | --------- |
+| WB-UI-001 | popup          | Renders heading and labelled field            | Render                                      | `h1` "WriteBetter"; textbox named "Text to improve"                 | Pass   | Yes       |
+| WB-UI-002 | popup          | Initial state                                 | Render, nothing selected                    | "0 words · 0 / 5,000 characters"; no alert; not invalid             | Pass   | Yes       |
+| WB-UI-003 | popup          | Live counts, singular/plural                  | Type "Hello", then " world"                 | "1 word · 5", then "2 words · 11"                                   | Pass   | Yes       |
+| WB-UI-004 | popup          | Over-limit warning                            | Paste 5,001 characters                      | Alert "This text is too long"; field `aria-invalid`                 | Pass   | Yes       |
+| WB-UI-005 | popup          | Warning clears                                | Paste 5,001, press Backspace                | No alert; field valid                                               | Pass   | Yes       |
+| WB-UI-006 | popup          | Keyboard reachable                            | Press Tab                                   | Textbox focused                                                     | Pass   | Yes       |
+| WB-UI-007 | popup          | Honest about missing features                 | Render                                      | "not available" notice; no buttons                                  | Pass   | Yes       |
+| WB-UI-008 | popup          | Loading state, then selection fills the field | Resolve loader with a capture               | Status "Reading your selection…", then "Loaded…"; field filled      | Pass   | Yes       |
+| WB-UI-009 | popup          | Typed text is never overwritten               | Type, then resolve loader with a capture    | Field keeps the typed text                                          | Pass   | Yes       |
+| WB-UI-010 | popup          | Read-only field mentioned                     | Capture with `readOnly`                     | Status mentions read-only                                           | Pass   | Yes       |
+| WB-UI-011 | popup          | Non-capture outcomes explained                | Empty selection, password, restricted, rich | Matching status; field left empty                                   | Pass   | Yes       |
+| WB-UI-012 | popup          | Selection read once per opening               | Render                                      | Loader called exactly once                                          | Pass   | Yes       |
+| WB-UI-013 | popup          | Fix grammar availability                      | Empty, spaces, text, over limit             | Disabled, disabled, enabled, disabled                               | Pass   | Yes       |
+| WB-UI-014 | popup          | Progress then results                         | Click; resolve with one fix                 | "Checking…", then corrected text, "Fixed 1 problem", message        | Pass   | Yes       |
+| WB-UI-015 | popup          | Original preserved                            | Click Fix grammar                           | Input field unchanged                                               | Pass   | Yes       |
+| WB-UI-016 | popup          | Review-only issues                            | Resolve with non-auto-fix issue             | "1 possible problem…"; no corrected text                            | Pass   | Yes       |
+| WB-UI-017 | popup          | Nothing to fix                                | Resolve with []                             | "No problems found."                                                | Pass   | Yes       |
+| WB-UI-018 | popup          | Results cleared on edit                       | Fix, then type                              | Results gone                                                        | Pass   | Yes       |
+| WB-UI-019 | popup          | Late result for edited text                   | Click, type, then resolve                   | Result dropped                                                      | Pass   | Yes       |
+| WB-UI-020 | popup          | Engine failure / timeout                      | Reject with each reason                     | Alert with matching advice; text kept; can retry                    | Pass   | Yes       |
+| WB-UI-021 | popup          | Keyboard                                      | Focus button, Enter                         | Check runs                                                          | Pass   | Yes       |
+| WB-UI-022 | result actions | Copy                                          | Click Copy                                  | Clipboard gets corrected text; "Copied"                             | Pass   | Yes       |
+| WB-UI-023 | result actions | Copy fails                                    | Clipboard rejects                           | Manual-copy advice                                                  | Pass   | Yes       |
+| WB-UI-024 | result actions | Confirm and replace                           | Replace, Enter on focused confirm           | Exact request sent; "Replaced"                                      | Pass   | Yes       |
+| WB-UI-025 | result actions | Cancel                                        | Cancel button; Escape                       | Nothing sent; back to start                                         | Pass   | Yes       |
+| WB-UI-026 | result actions | Undo                                          | Replace, then Undo                          | Reverse request; "original text is back"; Replace offered again     | Pass   | Yes       |
+| WB-UI-027 | result actions | Each refusal                                  | 6 outcomes                                  | Matching alert; no blind retry; Copy still there                    | Pass   | Yes       |
+| WB-UI-028 | result actions | No target                                     | Typed text; read-only                       | Copy only, with reason                                              | Pass   | Yes       |
+| WB-UI-029 | change view    | Inline marks                                  | I has a apple.                              | del/ins with screen-reader labels                                   | Pass   | Yes       |
+| WB-UI-030 | change view    | Removal                                       | and and done                                | del only                                                            | Pass   | Yes       |
+| WB-UI-031 | popup          | Replace offered for page text                 | Captured, editable                          | Replace button; change view                                         | Pass   | Yes       |
+| WB-UI-032 | popup          | Copy only                                     | Typed text; read-only field                 | No Replace button                                                   | Pass   | Yes       |
+| WB-UI-033 | popup          | Fresh actions per result                      | Confirm, edit, check again                  | No stale confirmation                                               | Pass   | Yes       |
+| WB-UI-034 | result actions | Rich confirmation, one change                 | Replace on page                             | "Make this change… Formatting such as bold text and links is kept." | Pass   | Yes       |
+| WB-UI-035 | result actions | Rich confirmation, several                    | Two fixes                                   | "Make these 2 changes"                                              | Pass   | Yes       |
+| WB-UI-036 | result actions | Rich request and undo hint                    | Confirm                                     | Fixes sent (not whole text); Ctrl+Z hint; no Undo button            | Pass   | Yes       |
+| WB-UI-037 | result actions | Partial result                                | partial 2/3                                 | "Made 2 of 3 changes."                                              | Pass   | Yes       |
+| WB-UI-038 | result actions | Unexpected editor behaviour                   | unexpected, 1 applied                       | Clear alert; count; Ctrl+Z advice                                   | Pass   | Yes       |
 
 ## Integration
 
@@ -113,7 +118,7 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-INT-006 | capture (jsdom)       | Ordinary autocomplete token (`name`)         | Captured normally                                                        | Pass   | Yes       |
 | WB-INT-007 | capture (jsdom)       | Email and number inputs                      | `unsupported-field` / `input-type`                                       | Pass   | Yes       |
 | WB-INT-008 | capture (jsdom)       | Read-only textarea                           | Captured with `readOnly: true`                                           | Pass   | Yes       |
-| WB-INT-009 | capture (jsdom)       | Contenteditable editor                       | `unsupported-field` / `contenteditable`                                  | Pass   | Yes       |
+| WB-INT-009 | capture (jsdom)       | Contenteditable editor                       | Captured as rich text (was "unsupported" before Milestone 5)             | Pass   | Yes       |
 | WB-INT-010 | capture (jsdom)       | Focused iframe                               | `unsupported-field` / `frame`                                            | Pass   | Yes       |
 | WB-INT-011 | capture (jsdom)       | Field inside an open shadow root             | Captured                                                                 | Pass   | Yes       |
 | WB-INT-012 | page-access           | Reads the popup window's active tab          | Queries active tab; injects `captureSelection` into it                   | Pass   | Yes       |
@@ -152,32 +157,45 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-INT-045 | page-access           | Chrome refuses                               | page-unavailable                                                         | Pass   | Yes       |
 | WB-INT-046 | page-access           | Invalid tab                                  | page-unavailable; no injection                                           | Pass   | Yes       |
 | WB-INT-047 | page-access           | Missing / malformed answer                   | failed                                                                   | Pass   | Yes       |
+| WB-INT-048 | rich (jsdom)          | Selection across bold and link               | Plain text, field rich                                                   | Pass   | Yes       |
+| WB-INT-049 | rich (jsdom)          | Paragraphs, br, empty divs                   | Single newlines; no space before a break                                 | Pass   | Yes       |
+| WB-INT-050 | rich (jsdom)          | Indented HTML source                         | Source whitespace ignored                                                | Pass   | Yes       |
+| WB-INT-051 | rich (jsdom)          | Caret only                                   | empty-selection                                                          | Pass   | Yes       |
+| WB-INT-052 | rich (jsdom)          | Selection outside focused editor             | empty-selection                                                          | Pass   | Yes       |
+| WB-INT-058 | rich (jsdom)          | Whitespace runs                              | Collapsed to one space                                                   | Pass   | Yes       |
+| WB-INT-053 | rich (jsdom)          | Fixes inside bold and link                   | Only words edited; b and a keep content and href; applied last to first  | Pass   | Yes       |
+| WB-INT-054 | rich (jsdom)          | Fixes in two paragraphs                      | Both paragraphs intact                                                   | Pass   | Yes       |
+| WB-INT-055 | rich (jsdom)          | Word split across formatting                 | Fixed                                                                    | Pass   | Yes       |
+| WB-INT-056 | rich (jsdom)          | Fix spanning a line break                    | Skipped; partial 1/2                                                     | Pass   | Yes       |
+| WB-INT-057 | rich (jsdom)          | Focus moved to a text field                  | field-gone                                                               | Pass   | Yes       |
 
 ## End-to-end
 
-| ID         | Scenario                               | Steps                                                  | Expected                                                                     | Status | Automated |
-| ---------- | -------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------- | ------ | --------- |
-| WB-E2E-001 | Extension loads; worker starts         | Launch Chromium with `dist/`                           | Worker at `service-worker.js`; valid 32-char id                              | Pass   | Yes       |
-| WB-E2E-002 | Popup opens and counts                 | Open popup directly, fill "Their going to the park 👋🏽" | "Can't read this page" status; "5 words · 25 / 5,000"                        | Pass   | Yes       |
-| WB-E2E-003 | Stylesheet applies                     | Open popup, measure `main`                             | 360 px wide                                                                  | Pass   | Yes       |
-| WB-E2E-004 | No errors or CSP violations            | Open popup, collect console and page errors            | None                                                                         | Pass   | Yes       |
-| WB-E2E-006 | Textarea selection                     | Select "their is a problem", invoke                    | Field filled; "4 words · 18"                                                 | Pass   | Yes       |
-| WB-E2E-007 | Text input selection                   | Select "Quick question", invoke                        | Field filled                                                                 | Pass   | Yes       |
-| WB-E2E-008 | Caret, nothing selected                | Collapse selection, invoke                             | "No text is selected"; field empty                                           | Pass   | Yes       |
-| WB-E2E-009 | No field focused                       | Invoke on page                                         | "Select text in a text box"                                                  | Pass   | Yes       |
-| WB-E2E-010 | Read-only field                        | Select in read-only textarea, invoke                   | Field filled; status mentions read-only                                      | Pass   | Yes       |
-| WB-E2E-011 | Rich-text editor                       | Focus contenteditable, invoke                          | "isn't supported yet … paste it below"                                       | Pass   | Yes       |
-| WB-E2E-012 | Email field                            | Focus email input, invoke                              | "field isn't supported"                                                      | Pass   | Yes       |
-| WB-E2E-013 | Browser page                           | Invoke on `chrome://version`                           | "can't read this page"                                                       | Pass   | Yes       |
-| WB-E2E-014 | Access ends on cross-origin navigation | Invoke; navigate to other origin; read again           | "can't read this page"                                                       | Pass   | Yes       |
-| WB-E2E-016 | Access survives same-origin navigation | Invoke; navigate within site; select; read again       | Field filled                                                                 | Pass   | Yes       |
-| WB-E2E-015 | `openPopup()` works from the worker    | Call from service worker                               | Popup target appears                                                         | Pass   | Yes       |
-| WB-E2E-017 | Fix grammar with the real engine       | Type "I has a apple.", click                           | "I have an apple."; "Fixed 2 problems"                                       | Pass   | Yes       |
-| WB-E2E-018 | Full journey                           | Select fragment on page, invoke, Fix grammar           | "we were late and the build failed."; page unchanged                         | Pass   | Yes       |
-| WB-E2E-019 | Replace after confirmation             | Fix draft, Replace, check page, Yes                    | Page unchanged until Yes; then corrected; page saw input:insertText + change | Pass   | Yes       |
-| WB-E2E-020 | Native undo                            | Replace, Ctrl+Z in page                                | Original restored                                                            | Pass   | Yes       |
-| WB-E2E-021 | Undo button                            | Replace, Undo                                          | Original restored                                                            | Pass   | Yes       |
-| WB-E2E-022 | Copy                                   | Copy, paste into page field                            | Pasted text is the corrected text                                            | Pass   | Yes       |
+| ID         | Scenario                                                                         | Steps                                                     | Expected                                                                     | Status | Automated |
+| ---------- | -------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------- | ------ | --------- |
+| WB-E2E-001 | Extension loads; worker starts                                                   | Launch Chromium with `dist/`                              | Worker at `service-worker.js`; valid 32-char id                              | Pass   | Yes       |
+| WB-E2E-002 | Popup opens and counts                                                           | Open popup directly, fill "Their going to the park 👋🏽"    | "Can't read this page" status; "5 words · 25 / 5,000"                        | Pass   | Yes       |
+| WB-E2E-003 | Stylesheet applies                                                               | Open popup, measure `main`                                | 360 px wide                                                                  | Pass   | Yes       |
+| WB-E2E-004 | No errors or CSP violations                                                      | Open popup, collect console and page errors               | None                                                                         | Pass   | Yes       |
+| WB-E2E-006 | Textarea selection                                                               | Select "their is a problem", invoke                       | Field filled; "4 words · 18"                                                 | Pass   | Yes       |
+| WB-E2E-007 | Text input selection                                                             | Select "Quick question", invoke                           | Field filled                                                                 | Pass   | Yes       |
+| WB-E2E-008 | Caret, nothing selected                                                          | Collapse selection, invoke                                | "No text is selected"; field empty                                           | Pass   | Yes       |
+| WB-E2E-009 | No field focused                                                                 | Invoke on page                                            | "Select text in a text box"                                                  | Pass   | Yes       |
+| WB-E2E-010 | Read-only field                                                                  | Select in read-only textarea, invoke                      | Field filled; status mentions read-only                                      | Pass   | Yes       |
+| WB-E2E-011 | Caret in a rich-text editor                                                      | Focus contenteditable, invoke                             | "No text is selected"                                                        | Pass   | Yes       |
+| WB-E2E-012 | Email field                                                                      | Focus email input, invoke                                 | "field isn't supported"                                                      | Pass   | Yes       |
+| WB-E2E-013 | Browser page                                                                     | Invoke on `chrome://version`                              | "can't read this page"                                                       | Pass   | Yes       |
+| WB-E2E-014 | Access ends on cross-origin navigation                                           | Invoke; navigate to other origin; read again              | "can't read this page"                                                       | Pass   | Yes       |
+| WB-E2E-016 | Access survives same-origin navigation                                           | Invoke; navigate within site; select; read again          | Field filled                                                                 | Pass   | Yes       |
+| WB-E2E-015 | `openPopup()` works from the worker                                              | Call from service worker                                  | Popup target appears                                                         | Pass   | Yes       |
+| WB-E2E-017 | Fix grammar with the real engine                                                 | Type "I has a apple.", click                              | "I have an apple."; "Fixed 2 problems"                                       | Pass   | Yes       |
+| WB-E2E-018 | Full journey                                                                     | Select fragment on page, invoke, Fix grammar              | "we were late and the build failed."; page unchanged                         | Pass   | Yes       |
+| WB-E2E-019 | Replace after confirmation                                                       | Fix draft, Replace, check page, Yes                       | Page unchanged until Yes; then corrected; page saw input:insertText + change | Pass   | Yes       |
+| WB-E2E-020 | Native undo                                                                      | Replace, Ctrl+Z in page                                   | Original restored                                                            | Pass   | Yes       |
+| WB-E2E-021 | Undo button                                                                      | Replace, Undo                                             | Original restored                                                            | Pass   | Yes       |
+| WB-E2E-022 | Copy                                                                             | Copy, paste into page field                               | Pasted text is the corrected text                                            | Pass   | Yes       |
+| WB-E2E-023 | Rich editors: fix and replace (×4: contenteditable, ProseMirror, Quill, Lexical) | Select across bold and link, invoke, Fix grammar, confirm | Editor model holds fixed text; bold and link kept; 2 paragraphs              | Pass   | Yes       |
+| WB-E2E-024 | Rich editors: Ctrl+Z (×4)                                                        | Replace, then Ctrl+Z in editor                            | Original text restored in the editor model                                   | Pass   | Yes       |
 
 ## Manual (real Google Chrome)
 
@@ -191,32 +209,37 @@ These need a person, because they involve Chrome's own UI or branded Chrome.
 | WB-MAN-003 | Keyboard shortcut              | Select text in a text box, press Alt+Shift+W                                    | Popup opens with the selection                             | **Not run** |
 | WB-MAN-004 | Install shows no warning       | Load the extension; check its Details page                                      | No "Read and change your data" site-access warning         | **Not run** |
 | WB-MAN-005 | Replace on real sites          | Replace in a textarea on a few common sites (e.g. a GitHub comment, a web form) | Text replaced; Ctrl+Z works; site notices the change       | **Not run** |
+| WB-MAN-006 | Gmail compose                  | Select a sentence with a typo in a draft, Fix grammar, Replace                  | Fixed in place; formatting kept; Ctrl+Z works              | **Not run** |
+| WB-MAN-007 | Other editors on real sites    | Repeat on e.g. Outlook web, Notion, a GitHub comment                            | As above, or a clear message                               | **Not run** |
 
 ## Security
 
-| ID         | Scenario                                      | Expected                                                                                               | Status              | Automated |
-| ---------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------- | --------- |
-| WB-SEC-001 | Only on-demand permissions                    | `activeTab`, `contextMenus`, `scripting`; no host permissions or content scripts                       | Pass                | Yes       |
-| WB-SEC-002 | CSP allows bundled scripts only               | `script-src 'self'`; no unsafe-eval/inline, no remote hosts                                            | Pass                | Yes       |
-| WB-SEC-003 | Typed markup is shown as text                 | `<img onerror>` stays in the textarea; no `img` element created                                        | Pass                | Yes       |
-| WB-SEC-004 | Build gate rejects permissions and secrets    | Tampered `dist/` (added `tabs`, `<all_urls>`, fake `sk-ant-` key) fails `validate:build` with 4 errors | Pass (manual, once) | No        |
-| WB-SEC-005 | Unknown fields from the page are dropped      | Extra `html` field and stray `text` removed                                                            | Pass                | Yes       |
-| WB-SEC-006 | Malformed page results rejected               | 13 malformed shapes all return null                                                                    | Pass                | Yes       |
-| WB-SEC-007 | Status message never repeats captured text    | Message excludes the text                                                                              | Pass                | Yes       |
-| WB-SEC-008 | Password value never read (jsdom)             | `value` getter that throws is never called                                                             | Pass                | Yes       |
-| WB-SEC-009 | Sensitive autocomplete tokens refused (jsdom) | `one-time-code`, `cc-number`, `cc-csc`, `current-password`, `new-password`                             | Pass                | Yes       |
-| WB-SEC-010 | Password field refused (Chromium)             | Status warns; text not shown anywhere in popup                                                         | Pass                | Yes       |
-| WB-SEC-011 | One-time-code field refused (Chromium)        | Status warns; field empty                                                                              | Pass                | Yes       |
-| WB-SEC-012 | No access without user invocation (Chromium)  | Popup told the tab id, but not invoked: "can't read this page"                                         | Pass                | Yes       |
-| WB-SEC-013 | Markup in text is not "corrected"             | `<img src=x onerror=…> teh end` → only `teh` fixed                                                     | Pass                | Yes       |
-| WB-SEC-014 | Malformed worker requests rejected            | 6 shapes incl. oversized text                                                                          | Pass                | Yes       |
-| WB-SEC-015 | Malformed worker responses rejected           | 9 shapes                                                                                               | Pass                | Yes       |
-| WB-SEC-016 | Errors never contain the text                 | Failure message excludes the draft                                                                     | Pass                | Yes       |
-| WB-SEC-017 | Markup in an issue message shown as text      | No `img` element created                                                                               | Pass                | Yes       |
-| WB-SEC-018 | No network while checking (Chromium)          | Every request is to the extension itself; no console errors                                            | Pass                | Yes       |
-| WB-SEC-019 | Changed text never overwritten (jsdom)        | changed; field untouched                                                                               | Pass                | Yes       |
-| WB-SEC-020 | Sensitive fields never written or read        | password, one-time-code: field-gone, value getter never called                                         | Pass                | Yes       |
-| WB-SEC-021 | Replace needs explicit confirmation           | First click sends nothing                                                                              | Pass                | Yes       |
-| WB-SEC-022 | Markup in change view shown as text           | No img element                                                                                         | Pass                | Yes       |
-| WB-SEC-023 | Malformed replace results rejected            | 6 shapes: failed                                                                                       | Pass                | Yes       |
-| WB-SEC-024 | Changed text never overwritten (Chromium)     | User rewrites draft after opening; Replace refused; their text kept                                    | Pass                | Yes       |
+| ID         | Scenario                                             | Expected                                                                                                                                            | Status              | Automated |
+| ---------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | --------- |
+| WB-SEC-001 | Only on-demand permissions                           | `activeTab`, `contextMenus`, `scripting`; no host permissions or content scripts                                                                    | Pass                | Yes       |
+| WB-SEC-002 | CSP allows bundled scripts only                      | `script-src 'self'`; no unsafe-eval/inline, no remote hosts                                                                                         | Pass                | Yes       |
+| WB-SEC-003 | Typed markup is shown as text                        | `<img onerror>` stays in the textarea; no `img` element created                                                                                     | Pass                | Yes       |
+| WB-SEC-004 | Build gate rejects permissions and secrets           | Tampered `dist/` (added `tabs`, `<all_urls>`, fake `sk-ant-` key) fails `validate:build` with 4 errors                                              | Pass (manual, once) | No        |
+| WB-SEC-005 | Unknown fields from the page are dropped             | Extra `html` field and stray `text` removed                                                                                                         | Pass                | Yes       |
+| WB-SEC-006 | Malformed page results rejected                      | 13 malformed shapes all return null                                                                                                                 | Pass                | Yes       |
+| WB-SEC-007 | Status message never repeats captured text           | Message excludes the text                                                                                                                           | Pass                | Yes       |
+| WB-SEC-008 | Password value never read (jsdom)                    | `value` getter that throws is never called                                                                                                          | Pass                | Yes       |
+| WB-SEC-009 | Sensitive autocomplete tokens refused (jsdom)        | `one-time-code`, `cc-number`, `cc-csc`, `current-password`, `new-password`                                                                          | Pass                | Yes       |
+| WB-SEC-010 | Password field refused (Chromium)                    | Status warns; text not shown anywhere in popup                                                                                                      | Pass                | Yes       |
+| WB-SEC-011 | One-time-code field refused (Chromium)               | Status warns; field empty                                                                                                                           | Pass                | Yes       |
+| WB-SEC-012 | No access without user invocation (Chromium)         | Popup told the tab id, but not invoked: "can't read this page"                                                                                      | Pass                | Yes       |
+| WB-SEC-013 | Markup in text is not "corrected"                    | `<img src=x onerror=…> teh end` → only `teh` fixed                                                                                                  | Pass                | Yes       |
+| WB-SEC-014 | Malformed worker requests rejected                   | 6 shapes incl. oversized text                                                                                                                       | Pass                | Yes       |
+| WB-SEC-015 | Malformed worker responses rejected                  | 9 shapes                                                                                                                                            | Pass                | Yes       |
+| WB-SEC-016 | Errors never contain the text                        | Failure message excludes the draft                                                                                                                  | Pass                | Yes       |
+| WB-SEC-017 | Markup in an issue message shown as text             | No `img` element created                                                                                                                            | Pass                | Yes       |
+| WB-SEC-018 | No network while checking (Chromium)                 | Every request is to the extension itself; no console errors                                                                                         | Pass                | Yes       |
+| WB-SEC-019 | Changed text never overwritten (jsdom)               | changed; field untouched                                                                                                                            | Pass                | Yes       |
+| WB-SEC-020 | Sensitive fields never written or read               | password, one-time-code: field-gone, value getter never called                                                                                      | Pass                | Yes       |
+| WB-SEC-021 | Replace needs explicit confirmation                  | First click sends nothing                                                                                                                           | Pass                | Yes       |
+| WB-SEC-022 | Markup in change view shown as text                  | No img element                                                                                                                                      | Pass                | Yes       |
+| WB-SEC-023 | Malformed replace results rejected                   | 6 shapes: failed                                                                                                                                    | Pass                | Yes       |
+| WB-SEC-024 | Changed text never overwritten (Chromium)            | User rewrites draft after opening; Replace refused; their text kept                                                                                 | Pass                | Yes       |
+| WB-SEC-025 | Rich editor text changed since checking              | changed; no edit attempted                                                                                                                          | Pass                | Yes       |
+| WB-SEC-026 | Uneditable text never edited                         | contenteditable="false" part untouched; partial                                                                                                     | Pass                | Yes       |
+| WB-SEC-027 | Misplaced editor edit caught (mutation test, manual) | With the selection wait removed, Lexical misapplied the first edit; WriteBetter stopped and showed the "didn't apply a change where expected" alert | Pass (manual, once) | No        |

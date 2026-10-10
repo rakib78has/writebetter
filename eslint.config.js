@@ -7,6 +7,7 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     ignores: [
+      'tests/fixtures/.built-editors/**',
       'dist/**',
       'coverage/**',
       'node_modules/**',

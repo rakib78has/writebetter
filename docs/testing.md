@@ -46,6 +46,12 @@ jsdom has no `document.execCommand`, so component tests cover `replaceInField`'s
 
 Chrome will not grant clipboard-read permission to an extension page in a test, so the copy test checks the clipboard the way a user would: it pastes into a text box on the test page.
 
+### Rich-text editors
+
+`npm run test:e2e` first runs `scripts/build-test-editors.mjs`, which builds test pages for ProseMirror, Quill and Lexical into `tests/fixtures/.built-editors/` (served at `https://fixture.test/editors/…`). Each page exposes `window.editorText()`, which reads the editor's own model, so tests prove a change reached the editor and not just its DOM.
+
+jsdom implements neither `isContentEditable` nor `execCommand`; `tests/component/page-script-rich.test.ts` stands in for both to test the mapping and fix-ordering logic in detail.
+
 ### What cannot be automated
 
 - Clicking Chrome's native right-click menu. The handler is integration-tested, and WB-E2E-015 proves that `chrome.action.openPopup()` works in this Chromium. Manual check: WB-MAN-002.

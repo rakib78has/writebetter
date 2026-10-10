@@ -17,7 +17,12 @@
     <label>Code <input id="otp" type="text" autocomplete="one-time-code" value="481516" /></label>
     <label>Email <input id="email" type="email" value="ada@example.com" /></label>
     <label>Notes <textarea id="readonly" readonly>This note cannot be edited.</textarea></label>
-    <div id="rich" contenteditable="true">A rich text editor.</div>
+    <div id="rich" contenteditable="true">
+      <p>
+        Hi all, we <b>was late</b> and <a href="https://example.com/build">teh build</a> failed.
+      </p>
+      <p>Thanks for your patience.</p>
+    </div>
     <script>
       // Records how #draft was edited, the way a page framework would see it.
       window.draftEvents = [];
