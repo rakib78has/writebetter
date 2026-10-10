@@ -1,0 +1,6 @@
+# Prettier enforces LF line endings, so the working tree must use LF on every
+# platform, or `format:check` fails on a Windows checkout.
+* text=auto eol=lf
+
+*.png binary
+*.zip binary
