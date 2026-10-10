@@ -129,6 +129,16 @@ describe('capturing from a rich-text editor', () => {
     expect(capture()).toMatchObject({ text: 'we was late' });
   });
 
+  // WB-INT-060
+  it('refuses an oversized selection in an editor', () => {
+    editorWithSelection(
+      `<div contenteditable="true">start ${'word '.repeat(9_000)} end</div>`,
+      'start',
+      'end'
+    );
+    expect(capture()).toEqual({ status: 'too-long' });
+  });
+
   // WB-INT-051
   it('reports an empty selection when only the caret is in the editor', () => {
     const host = editorWithSelection('<div contenteditable="true">Text</div>', 'Te', 'Te');

@@ -43,6 +43,9 @@ npx playwright install chromium   # only needed for end-to-end tests and icon ge
 | `npm run build`          | Production build into `dist/`                                               |
 | `npm run dev`            | Rebuilds `dist/` on every change (reload the extension in Chrome to see it) |
 | `npm run validate:build` | Checks `dist/`: manifest, permissions, referenced files, no secrets         |
+| `npm run verify:package` | Opens the zip and checks it matches the build                               |
+| `npm run check:version`  | Checks package.json, lockfile, CHANGELOG and tag agree                      |
+| `npm run sbom`           | Writes a CycloneDX SBOM of the bundled packages                             |
 | `npm run package`        | Zips `dist/` (without source maps) into `writebetter-<version>.zip`         |
 | `npm run lint`           | ESLint with strict, type-aware rules                                        |
 | `npm run format:check`   | Prettier formatting check (`npm run format` fixes it)                       |
@@ -87,7 +90,7 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 4. **Copy and replace** (done): change view, copy, confirmed replace with undo. AI rewrite actions are on hold (free, local-only for now).
 5. **Rich-text editors** (done): contenteditable, ProseMirror, Quill, Lexical, tested
 6. **Browser test journey** (done): core journey, robustness, accessibility scans, diagnostics
-7. CI/CD and security hardening
+7. **CI/CD and security** (done): release workflow, package and network gates, security review
 8. Release readiness
 9. Optional AI mode through a secure backend
 
@@ -96,7 +99,8 @@ After rebuilding, click the reload icon on the WriteBetter card in `chrome://ext
 - [Architecture](docs/architecture.md)
 - [Editor compatibility](docs/compatibility.md): what is tested, what is not
 - [Grammar engine](docs/grammar-engine.md): choice, measurements, accuracy, limits
-- [Security](docs/security.md)
+- [Security](docs/security.md) and the latest [security review](docs/security-review.md)
+- [Release process](docs/release-process.md)
 - [Privacy](docs/privacy.md)
 - [Testing](docs/testing.md), [test cases](docs/test-cases.md) and [defects](docs/defects.md)
 - [Changelog](CHANGELOG.md)

@@ -6,6 +6,17 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- Release workflow: on a version tag, re-runs all CI gates, checks version consistency, and publishes a GitHub release with the zip, SHA-256 checksums, a CycloneDX SBOM and the CHANGELOG notes. Chrome Web Store publishing stays manual.
+- `verify:package`, `check:version`, `release:notes` and `sbom` scripts.
+- Build gate: no URLs outside a reviewed allow-list and no network APIs outside the grammar worker in shipped code.
+- CI: `npm audit signatures`; checkouts no longer persist the token; Dependabot for npm and GitHub Actions.
+- `docs/security-review.md` and `docs/release-process.md`.
+
+### Fixed
+
+- Very large selections (over 40,000 UTF-16 units) are refused before their text is read, instead of being copied into the popup.
+- Removed Vite's module-preload polyfill, an unnecessary `fetch` in the popup.
+
 - End-to-end: the core user journey as one test; repeated actions; a text box removed mid-flow; a tab that moved to another site; an editor inside an embedded frame.
 - Automated accessibility scans (axe-core, WCAG 2.1 A/AA) of every popup state, light and dark. No violations.
 - Every end-to-end test now fails on any error logged by an extension page, with the log attached.

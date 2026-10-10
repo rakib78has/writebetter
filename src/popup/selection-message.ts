@@ -38,6 +38,11 @@ export function describeSelection(outcome: SelectionOutcome | 'loading'): Select
         tone: 'warning',
         text: 'WriteBetter never reads password, verification-code or payment fields.',
       };
+    case 'too-long':
+      return {
+        tone: 'warning',
+        text: 'That selection is too long to check here. Select up to about 5,000 characters and open WriteBetter again.',
+      };
     case 'unsupported-field':
       return {
         tone: 'warning',

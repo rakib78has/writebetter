@@ -1,0 +1,73 @@
+name: Release
+
+# Runs when a version tag (v1.2.3) is pushed. It repeats every CI gate,
+# checks the version is consistent everywhere, and publishes a GitHub
+# release with the extension zip, its checksum and an SBOM.
+#
+# It does NOT publish to the Chrome Web Store. That is a deliberate, manual
+# step: see docs/release-process.md.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: All CI gates
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Publish GitHub release
+    needs: checks
+    runs-on: ubuntu-latest
+    # Only this job can write, and only to create the release.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # package.json, package-lock.json, CHANGELOG.md and the tag must agree.
+      - name: Check version consistency
+        run: npm run check:version
+
+      - name: Build, validate and package
+        run: |
+          npm run build
+          npm run validate:build
+          npm run package
+          npm run verify:package
+
+      - name: Release notes, SBOM and checksums
+        run: |
+          npm run --silent release:notes > release-notes.md
+          npm run sbom
+          sha256sum writebetter-*.zip writebetter-sbom.cdx.json > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      # The GitHub CLI is preinstalled on the runner, so no third-party
+      # action is needed to publish.
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --title "WriteBetter $TAG" \
+            --notes-file release-notes.md \
+            --verify-tag \
+            writebetter-*.zip writebetter-sbom.cdx.json SHA256SUMS.txt

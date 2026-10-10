@@ -1,6 +1,6 @@
 # Security
 
-## Threat model (Milestone 5)
+## Threat model (Milestone 7)
 
 | Asset                 | Threat                                                        | Current mitigation                                                                                                                                                           |
 | --------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -48,6 +48,8 @@ The capture function runs only in the tab's main frame. `activeTab` doesn't cove
 
 Dev-only dependency note: `quill` 2.0.3 has a low-severity advisory (XSS in its HTML export). Quill is used only to build local test pages, never shipped, and the tests do not use HTML export.
 
+The latest review, with checks performed and findings, is [security-review.md](security-review.md).
+
 ## Content Security Policy
 
 `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; frame-ancestors 'none'`
@@ -61,6 +63,14 @@ Runtime dependencies (shipped to users): `react`, `react-dom`, `harper.js` and t
 ## The `?tab=` popup parameter
 
 The popup reads the active tab of its window. Opened as a page with `?tab=<id>`, it reads that tab instead; the end-to-end tests use this. It grants nothing on its own: Chrome still refuses the read unless the user invoked the extension on that tab (WB-SEC-012). Web pages cannot open the popup URL at all, because it is not listed in `web_accessible_resources`. The value must be a plain run of digits (WB-INT-015).
+
+## Build and release safeguards
+
+- `validate:build` fails on any permission outside its allow-list, any host permission, a weaker CSP, anything that looks like a credential, a URL outside a reviewed allow-list, or a network API outside the grammar worker.
+- `verify:package` checks the zip users receive matches the build, with no source maps or source files.
+- CI uses no secrets, has read-only permissions, pins actions to commit SHAs and does not persist the checkout token. Only the release job can write, and only to create a release.
+- `npm audit signatures` verifies every installed package against the registry. Dependabot proposes updates as PRs that pass through CI.
+- Each release publishes an SBOM and SHA-256 checksums.
 
 ## Rules for contributors
 

@@ -35,6 +35,10 @@ export function runInPage(message: PageRequest): CaptureResult | Promise<Replace
   // is plain text.
   const SENSITIVE_AUTOCOMPLETE =
     /(?:^|\s)(?:current-password|new-password|one-time-code|cc-\S+)(?:\s|$)/i;
+  // Selections longer than this (in UTF-16 units) are refused unread. The
+  // popup's limit is 5,000 characters; one character can be several units
+  // (an emoji with a skin tone is four), hence the margin.
+  const MAX_SELECTION_UNITS = 40_000;
   // Elements that start a new line of text inside a rich-text editor.
   const BLOCK_TAGS =
     /^(?:ADDRESS|ARTICLE|ASIDE|BLOCKQUOTE|DD|DIV|DL|DT|FIGCAPTION|FIGURE|FOOTER|H[1-6]|HEADER|HR|LI|OL|P|PRE|SECTION|TABLE|TD|TH|TR|UL)$/;
@@ -194,6 +198,13 @@ export function runInPage(message: PageRequest): CaptureResult | Promise<Replace
       case 'none':
         return { status: 'no-field' };
       case 'rich': {
+        // Measured before walking the DOM, so a huge selection costs nothing.
+        const selected = document.getSelection();
+        if (selected && selected.rangeCount > 0) {
+          if (selected.getRangeAt(0).toString().length > MAX_SELECTION_UNITS) {
+            return { status: 'too-long' };
+          }
+        }
         const read = readRichSelection(target.host);
         if (!read || read.text.trim() === '') return { status: 'empty-selection' };
         return { status: 'captured', text: read.text, field: 'rich', readOnly: false };
@@ -203,6 +214,7 @@ export function runInPage(message: PageRequest): CaptureResult | Promise<Replace
         const start = field.selectionStart ?? 0;
         const end = field.selectionEnd ?? 0;
         if (start === end) return { status: 'empty-selection' };
+        if (end - start > MAX_SELECTION_UNITS) return { status: 'too-long' };
         return {
           status: 'captured',
           text: field.value.slice(start, end),

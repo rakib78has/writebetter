@@ -14,6 +14,8 @@ export type CaptureResult =
   | { status: 'no-field' }
   /** A password, one-time-code or payment field. Its value is never read. */
   | { status: 'sensitive-field' }
+  /** The selection is far over the length limit. It was not read. */
+  | { status: 'too-long' }
   /** A text-editing surface WriteBetter does not support. */
   | { status: 'unsupported-field'; reason: UnsupportedReason };
 
@@ -63,6 +65,7 @@ export function parseCaptureResult(value: unknown): CaptureResult | null {
     case 'empty-selection':
     case 'no-field':
     case 'sensitive-field':
+    case 'too-long':
       return { status: value.status };
 
     case 'unsupported-field':

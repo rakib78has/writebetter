@@ -19,6 +19,7 @@ describe('describeSelection', () => {
     ['an empty selection', { status: 'empty-selection' }, 'neutral', /no text is selected/i],
     ['no field', { status: 'no-field' }, 'neutral', /select text in a text box/i],
     ['a sensitive field', { status: 'sensitive-field' }, 'warning', /never reads password/i],
+    ['an oversized selection', { status: 'too-long' }, 'warning', /too long to check/i],
     [
       'a frame',
       { status: 'unsupported-field', reason: 'frame' },

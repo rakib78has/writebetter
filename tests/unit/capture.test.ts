@@ -17,7 +17,7 @@ describe('parseCaptureResult', () => {
 
   // WB-UNIT-015
   it('accepts each status that carries no data', () => {
-    for (const status of ['empty-selection', 'no-field', 'sensitive-field']) {
+    for (const status of ['empty-selection', 'no-field', 'sensitive-field', 'too-long']) {
       expect(parseCaptureResult({ status })).toEqual({ status });
     }
   });

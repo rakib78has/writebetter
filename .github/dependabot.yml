@@ -1,0 +1,24 @@
+# Controlled dependency updates: Dependabot opens pull requests, CI checks
+# them like any other change, and a person decides whether to merge.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Tooling moves together; one PR a week instead of a dozen.
+      dev-tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+    # The grammar engine changes output; upgrade it deliberately and update
+    # tests/fixtures/grammar-cases.json in the same PR (docs/grammar-engine.md).
+    ignore:
+      - dependency-name: harper.js
+        update-types: [version-update:semver-minor, version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

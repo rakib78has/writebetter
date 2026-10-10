@@ -43,6 +43,9 @@ export default defineConfig(({ mode }) => ({
     // Chrome Web Store allows minification but not obfuscation. Source maps
     // help local debugging and are left out of the store package.
     minify: mode === 'production',
+    // Chrome supports <link rel=modulepreload> natively, so Vite's polyfill
+    // (which fetches the preloaded scripts itself) is dead code here.
+    modulePreload: { polyfill: false },
     sourcemap: true,
     rollupOptions: {
       input: {

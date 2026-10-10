@@ -107,3 +107,22 @@ test('a text box inside an embedded frame gets a clear fallback', async ({
     { timeout: ENGINE_TIMEOUT }
   );
 });
+
+// WB-SEC-029
+test('a huge selection is refused without being read', async ({
+  openFixture,
+  invokeExtensionOn,
+}) => {
+  const page = await openFixture('editors.html');
+  await page.locator('#draft').evaluate((field) => {
+    const textarea = field as HTMLTextAreaElement;
+    textarea.value = 'All work and no play. '.repeat(2_500); // 55,000 characters
+    textarea.focus();
+    textarea.select();
+  });
+
+  const popup = await invokeExtensionOn(page);
+
+  await expect(popup.getByRole('status')).toContainText('too long to check');
+  await expect(popup.getByRole('textbox', { name: 'Text to improve' })).toHaveValue('');
+});

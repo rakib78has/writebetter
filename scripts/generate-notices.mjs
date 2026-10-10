@@ -9,45 +9,19 @@
  * drift from what is actually bundled.
  */
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { root, runtimePackages } from './runtime-packages.mjs';
 
-const root = resolve(import.meta.dirname, '..');
 const LICENCE_FILE = /^(licen[cs]e|copying|notice)(\.(md|txt))?$/i;
 
-function readPackage(directory) {
-  return JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
-}
-
-/** Finds a dependency the way Node does: in node_modules, walking upwards. */
-function locate(name, fromDirectory) {
-  for (let dir = fromDirectory; ; dir = dirname(dir)) {
-    const candidate = join(dir, 'node_modules', name);
-    if (existsSync(join(candidate, 'package.json'))) return candidate;
-    if (dirname(dir) === dir) throw new Error(`Cannot find package ${name}`);
-  }
-}
-
-// Runtime dependencies only, followed transitively. Dev tools are not shipped.
-const seen = new Map();
-const queue = Object.keys(readPackage(root).dependencies ?? {}).map((name) => [name, root]);
-while (queue.length > 0) {
-  const [name, from] = queue.shift();
-  const directory = locate(name, from);
-  if (seen.has(directory)) continue;
-  const pkg = readPackage(directory);
-  seen.set(directory, pkg);
-  for (const dependency of Object.keys(pkg.dependencies ?? {})) queue.push([dependency, directory]);
-}
-
-const sections = [...seen.entries()]
-  .sort(([, a], [, b]) => a.name.localeCompare(b.name))
-  .map(([directory, pkg]) => {
-    const files = readdirSync(directory).filter((file) => LICENCE_FILE.test(file));
-    if (files.length === 0) throw new Error(`${pkg.name} has no licence file to include`);
-    const texts = files.map((file) => readFileSync(join(directory, file), 'utf8').trim());
-    return [`${pkg.name} ${pkg.version} (${pkg.license})`, '-'.repeat(72), ...texts].join('\n\n');
-  });
+const packages = runtimePackages();
+const sections = packages.map(({ directory, pkg }) => {
+  const files = readdirSync(directory).filter((file) => LICENCE_FILE.test(file));
+  if (files.length === 0) throw new Error(`${pkg.name} has no licence file to include`);
+  const texts = files.map((file) => readFileSync(join(directory, file), 'utf8').trim());
+  return [`${pkg.name} ${pkg.version} (${pkg.license})`, '-'.repeat(72), ...texts].join('\n\n');
+});
 
 const header =
   'WriteBetter includes the following third-party software.\n' +
@@ -57,5 +31,5 @@ writeFileSync(
   [header, ...sections].join(`\n\n${'='.repeat(72)}\n\n`) + '\n'
 );
 console.log(
-  `✔ Wrote licences for ${sections.length} packages: ${[...seen.values()].map((p) => p.name).join(', ')}`
+  `✔ Wrote licences for ${sections.length} packages: ${packages.map(({ pkg }) => pkg.name).join(', ')}`
 );

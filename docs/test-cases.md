@@ -2,7 +2,7 @@
 
 Status records the most recent execution. A test is marked **Pass** only after it has actually run.
 
-Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 284 Vitest tests and 41 Playwright tests passed. CI passed for Milestones 1–3 (PRs #1 and #2).
+Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 288 Vitest tests and 42 Playwright tests passed. CI passed for Milestones 1–3 (PRs #1 and #2).
 
 Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run build` and the Playwright Chromium install.
 
@@ -108,66 +108,68 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 
 ## Integration
 
-| ID         | Module                | Scenario                                     | Expected                                                                 | Status | Automated |
-| ---------- | --------------------- | -------------------------------------------- | ------------------------------------------------------------------------ | ------ | --------- |
-| WB-INT-001 | capture (jsdom)       | Selection in a textarea                      | Only the selected part, with offsets                                     | Pass   | Yes       |
-| WB-INT-002 | capture (jsdom)       | Inputs of type text, search, url, tel        | Selected text returned                                                   | Pass   | Yes       |
-| WB-INT-003 | capture (jsdom)       | Emoji in selection                           | Returned intact                                                          | Pass   | Yes       |
-| WB-INT-004 | capture (jsdom)       | Caret with no selection                      | `empty-selection`                                                        | Pass   | Yes       |
-| WB-INT-005 | capture (jsdom)       | Nothing focused                              | `no-field`                                                               | Pass   | Yes       |
-| WB-INT-006 | capture (jsdom)       | Ordinary autocomplete token (`name`)         | Captured normally                                                        | Pass   | Yes       |
-| WB-INT-007 | capture (jsdom)       | Email and number inputs                      | `unsupported-field` / `input-type`                                       | Pass   | Yes       |
-| WB-INT-008 | capture (jsdom)       | Read-only textarea                           | Captured with `readOnly: true`                                           | Pass   | Yes       |
-| WB-INT-009 | capture (jsdom)       | Contenteditable editor                       | Captured as rich text (was "unsupported" before Milestone 5)             | Pass   | Yes       |
-| WB-INT-010 | capture (jsdom)       | Focused iframe                               | `unsupported-field` / `frame`                                            | Pass   | Yes       |
-| WB-INT-011 | capture (jsdom)       | Field inside an open shadow root             | Captured                                                                 | Pass   | Yes       |
-| WB-INT-012 | page-access           | Reads the popup window's active tab          | Queries active tab; injects `captureSelection` into it                   | Pass   | Yes       |
-| WB-INT-013 | page-access           | Main frame only                              | No `allFrames` in the injection target                                   | Pass   | Yes       |
-| WB-INT-014 | page-access           | `?tab=42`                                    | Injects into tab 42 without querying                                     | Pass   | Yes       |
-| WB-INT-015 | page-access           | Invalid `?tab=` values                       | `abc`, `-1`, `1.5`, empty, `1e3`, huge: `page-unavailable`, no injection | Pass   | Yes       |
-| WB-INT-016 | page-access           | No active tab                                | `page-unavailable`                                                       | Pass   | Yes       |
-| WB-INT-017 | page-access           | Chrome refuses to script the page            | `page-unavailable`                                                       | Pass   | Yes       |
-| WB-INT-018 | page-access           | No result, undefined or malformed result     | `failed`                                                                 | Pass   | Yes       |
-| WB-INT-019 | context-menu          | Registration                                 | `removeAll` then one `editable`-only item                                | Pass   | Yes       |
-| WB-INT-020 | context-menu          | Creation failure                             | Logged with Chrome's error message                                       | Pass   | Yes       |
-| WB-INT-021 | context-menu          | Click on own item                            | `openPopup({ windowId })`                                                | Pass   | Yes       |
-| WB-INT-022 | context-menu          | Click on another item                        | Ignored                                                                  | Pass   | Yes       |
-| WB-INT-023 | context-menu          | `openPopup` rejects                          | Warning logged, without the selected text; no throw                      | Pass   | Yes       |
-| WB-INT-024 | grammar (real Harper) | 17 errors fixed                              | Exact corrected text; nothing left for review                            | Pass   | Yes       |
-| WB-INT-025 | grammar (real Harper) | 2 known misses                               | Text unchanged (fails if an upgrade starts catching them)                | Pass   | Yes       |
-| WB-INT-026 | grammar (real Harper) | Names, capitalised misspelling, fragments    | Held for review, exact output                                            | Pass   | Yes       |
-| WB-INT-027 | grammar (real Harper) | 5 clean texts incl. URLs, code, identifiers  | No issues                                                                | Pass   | Yes       |
-| WB-INT-028 | grammar (real Harper) | 5,000 characters                             | Completes well under 2 s                                                 | Pass   | Yes       |
-| WB-INT-029 | worker-checker        | Lazy start, one preparation, issues returned | One worker; prepare once                                                 | Pass   | Yes       |
-| WB-INT-030 | worker-checker        | Concurrent calls                             | One prepare request                                                      | Pass   | Yes       |
-| WB-INT-031 | worker-checker        | Worker fails to load                         | `unavailable`; worker terminated; next call recovers                     | Pass   | Yes       |
-| WB-INT-032 | worker-checker        | Engine error                                 | `unavailable`                                                            | Pass   | Yes       |
-| WB-INT-033 | worker-checker        | Check never answered                         | `timeout`; recovers                                                      | Pass   | Yes       |
-| WB-INT-034 | worker-checker        | Prepare never answered                       | `timeout`                                                                | Pass   | Yes       |
-| WB-INT-035 | worker-checker        | Malformed or unknown responses               | Ignored                                                                  | Pass   | Yes       |
-| WB-INT-036 | replace (jsdom)       | Replace and select                           | Text replaced; new text selected                                         | Pass   | Yes       |
-| WB-INT-037 | replace (jsdom)       | Events                                       | input (insertReplacementText) then change                                | Pass   | Yes       |
-| WB-INT-038 | replace (jsdom)       | React-controlled input                       | onChange sees new value                                                  | Pass   | Yes       |
-| WB-INT-039 | replace (jsdom)       | Removal                                      | Text removed                                                             | Pass   | Yes       |
-| WB-INT-040 | replace (jsdom)       | Emoji around change                          | Intact                                                                   | Pass   | Yes       |
-| WB-INT-041 | replace (jsdom)       | Over maxlength                               | too-long; unchanged                                                      | Pass   | Yes       |
-| WB-INT-042 | replace (jsdom)       | Read-only                                    | read-only; unchanged                                                     | Pass   | Yes       |
-| WB-INT-043 | replace (jsdom)       | Focus lost                                   | field-gone                                                               | Pass   | Yes       |
-| WB-INT-044 | page-access           | replaceOnPage injection                      | replaceInField with request, target tab only                             | Pass   | Yes       |
-| WB-INT-045 | page-access           | Chrome refuses                               | page-unavailable                                                         | Pass   | Yes       |
-| WB-INT-046 | page-access           | Invalid tab                                  | page-unavailable; no injection                                           | Pass   | Yes       |
-| WB-INT-047 | page-access           | Missing / malformed answer                   | failed                                                                   | Pass   | Yes       |
-| WB-INT-048 | rich (jsdom)          | Selection across bold and link               | Plain text, field rich                                                   | Pass   | Yes       |
-| WB-INT-049 | rich (jsdom)          | Paragraphs, br, empty divs                   | Single newlines; no space before a break                                 | Pass   | Yes       |
-| WB-INT-050 | rich (jsdom)          | Indented HTML source                         | Source whitespace ignored                                                | Pass   | Yes       |
-| WB-INT-051 | rich (jsdom)          | Caret only                                   | empty-selection                                                          | Pass   | Yes       |
-| WB-INT-052 | rich (jsdom)          | Selection outside focused editor             | empty-selection                                                          | Pass   | Yes       |
-| WB-INT-058 | rich (jsdom)          | Whitespace runs                              | Collapsed to one space                                                   | Pass   | Yes       |
-| WB-INT-053 | rich (jsdom)          | Fixes inside bold and link                   | Only words edited; b and a keep content and href; applied last to first  | Pass   | Yes       |
-| WB-INT-054 | rich (jsdom)          | Fixes in two paragraphs                      | Both paragraphs intact                                                   | Pass   | Yes       |
-| WB-INT-055 | rich (jsdom)          | Word split across formatting                 | Fixed                                                                    | Pass   | Yes       |
-| WB-INT-056 | rich (jsdom)          | Fix spanning a line break                    | Skipped; partial 1/2                                                     | Pass   | Yes       |
-| WB-INT-057 | rich (jsdom)          | Focus moved to a text field                  | field-gone                                                               | Pass   | Yes       |
+| ID         | Module                | Scenario                                           | Expected                                                                 | Status | Automated |
+| ---------- | --------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ | ------ | --------- |
+| WB-INT-001 | capture (jsdom)       | Selection in a textarea                            | Only the selected part, with offsets                                     | Pass   | Yes       |
+| WB-INT-002 | capture (jsdom)       | Inputs of type text, search, url, tel              | Selected text returned                                                   | Pass   | Yes       |
+| WB-INT-003 | capture (jsdom)       | Emoji in selection                                 | Returned intact                                                          | Pass   | Yes       |
+| WB-INT-004 | capture (jsdom)       | Caret with no selection                            | `empty-selection`                                                        | Pass   | Yes       |
+| WB-INT-005 | capture (jsdom)       | Nothing focused                                    | `no-field`                                                               | Pass   | Yes       |
+| WB-INT-006 | capture (jsdom)       | Ordinary autocomplete token (`name`)               | Captured normally                                                        | Pass   | Yes       |
+| WB-INT-007 | capture (jsdom)       | Email and number inputs                            | `unsupported-field` / `input-type`                                       | Pass   | Yes       |
+| WB-INT-008 | capture (jsdom)       | Read-only textarea                                 | Captured with `readOnly: true`                                           | Pass   | Yes       |
+| WB-INT-009 | capture (jsdom)       | Contenteditable editor                             | Captured as rich text (was "unsupported" before Milestone 5)             | Pass   | Yes       |
+| WB-INT-010 | capture (jsdom)       | Focused iframe                                     | `unsupported-field` / `frame`                                            | Pass   | Yes       |
+| WB-INT-011 | capture (jsdom)       | Field inside an open shadow root                   | Captured                                                                 | Pass   | Yes       |
+| WB-INT-012 | page-access           | Reads the popup window's active tab                | Queries active tab; injects `captureSelection` into it                   | Pass   | Yes       |
+| WB-INT-013 | page-access           | Main frame only                                    | No `allFrames` in the injection target                                   | Pass   | Yes       |
+| WB-INT-014 | page-access           | `?tab=42`                                          | Injects into tab 42 without querying                                     | Pass   | Yes       |
+| WB-INT-015 | page-access           | Invalid `?tab=` values                             | `abc`, `-1`, `1.5`, empty, `1e3`, huge: `page-unavailable`, no injection | Pass   | Yes       |
+| WB-INT-016 | page-access           | No active tab                                      | `page-unavailable`                                                       | Pass   | Yes       |
+| WB-INT-017 | page-access           | Chrome refuses to script the page                  | `page-unavailable`                                                       | Pass   | Yes       |
+| WB-INT-018 | page-access           | No result, undefined or malformed result           | `failed`                                                                 | Pass   | Yes       |
+| WB-INT-019 | context-menu          | Registration                                       | `removeAll` then one `editable`-only item                                | Pass   | Yes       |
+| WB-INT-020 | context-menu          | Creation failure                                   | Logged with Chrome's error message                                       | Pass   | Yes       |
+| WB-INT-021 | context-menu          | Click on own item                                  | `openPopup({ windowId })`                                                | Pass   | Yes       |
+| WB-INT-022 | context-menu          | Click on another item                              | Ignored                                                                  | Pass   | Yes       |
+| WB-INT-023 | context-menu          | `openPopup` rejects                                | Warning logged, without the selected text; no throw                      | Pass   | Yes       |
+| WB-INT-024 | grammar (real Harper) | 17 errors fixed                                    | Exact corrected text; nothing left for review                            | Pass   | Yes       |
+| WB-INT-025 | grammar (real Harper) | 2 known misses                                     | Text unchanged (fails if an upgrade starts catching them)                | Pass   | Yes       |
+| WB-INT-026 | grammar (real Harper) | Names, capitalised misspelling, fragments          | Held for review, exact output                                            | Pass   | Yes       |
+| WB-INT-027 | grammar (real Harper) | 5 clean texts incl. URLs, code, identifiers        | No issues                                                                | Pass   | Yes       |
+| WB-INT-028 | grammar (real Harper) | 5,000 characters                                   | Completes well under 2 s                                                 | Pass   | Yes       |
+| WB-INT-029 | worker-checker        | Lazy start, one preparation, issues returned       | One worker; prepare once                                                 | Pass   | Yes       |
+| WB-INT-030 | worker-checker        | Concurrent calls                                   | One prepare request                                                      | Pass   | Yes       |
+| WB-INT-031 | worker-checker        | Worker fails to load                               | `unavailable`; worker terminated; next call recovers                     | Pass   | Yes       |
+| WB-INT-032 | worker-checker        | Engine error                                       | `unavailable`                                                            | Pass   | Yes       |
+| WB-INT-033 | worker-checker        | Check never answered                               | `timeout`; recovers                                                      | Pass   | Yes       |
+| WB-INT-034 | worker-checker        | Prepare never answered                             | `timeout`                                                                | Pass   | Yes       |
+| WB-INT-035 | worker-checker        | Malformed or unknown responses                     | Ignored                                                                  | Pass   | Yes       |
+| WB-INT-036 | replace (jsdom)       | Replace and select                                 | Text replaced; new text selected                                         | Pass   | Yes       |
+| WB-INT-037 | replace (jsdom)       | Events                                             | input (insertReplacementText) then change                                | Pass   | Yes       |
+| WB-INT-038 | replace (jsdom)       | React-controlled input                             | onChange sees new value                                                  | Pass   | Yes       |
+| WB-INT-039 | replace (jsdom)       | Removal                                            | Text removed                                                             | Pass   | Yes       |
+| WB-INT-040 | replace (jsdom)       | Emoji around change                                | Intact                                                                   | Pass   | Yes       |
+| WB-INT-041 | replace (jsdom)       | Over maxlength                                     | too-long; unchanged                                                      | Pass   | Yes       |
+| WB-INT-042 | replace (jsdom)       | Read-only                                          | read-only; unchanged                                                     | Pass   | Yes       |
+| WB-INT-043 | replace (jsdom)       | Focus lost                                         | field-gone                                                               | Pass   | Yes       |
+| WB-INT-044 | page-access           | replaceOnPage injection                            | replaceInField with request, target tab only                             | Pass   | Yes       |
+| WB-INT-045 | page-access           | Chrome refuses                                     | page-unavailable                                                         | Pass   | Yes       |
+| WB-INT-046 | page-access           | Invalid tab                                        | page-unavailable; no injection                                           | Pass   | Yes       |
+| WB-INT-047 | page-access           | Missing / malformed answer                         | failed                                                                   | Pass   | Yes       |
+| WB-INT-048 | rich (jsdom)          | Selection across bold and link                     | Plain text, field rich                                                   | Pass   | Yes       |
+| WB-INT-049 | rich (jsdom)          | Paragraphs, br, empty divs                         | Single newlines; no space before a break                                 | Pass   | Yes       |
+| WB-INT-050 | rich (jsdom)          | Indented HTML source                               | Source whitespace ignored                                                | Pass   | Yes       |
+| WB-INT-051 | rich (jsdom)          | Caret only                                         | empty-selection                                                          | Pass   | Yes       |
+| WB-INT-052 | rich (jsdom)          | Selection outside focused editor                   | empty-selection                                                          | Pass   | Yes       |
+| WB-INT-058 | rich (jsdom)          | Whitespace runs                                    | Collapsed to one space                                                   | Pass   | Yes       |
+| WB-INT-053 | rich (jsdom)          | Fixes inside bold and link                         | Only words edited; b and a keep content and href; applied last to first  | Pass   | Yes       |
+| WB-INT-054 | rich (jsdom)          | Fixes in two paragraphs                            | Both paragraphs intact                                                   | Pass   | Yes       |
+| WB-INT-055 | rich (jsdom)          | Word split across formatting                       | Fixed                                                                    | Pass   | Yes       |
+| WB-INT-056 | rich (jsdom)          | Fix spanning a line break                          | Skipped; partial 1/2                                                     | Pass   | Yes       |
+| WB-INT-057 | rich (jsdom)          | Focus moved to a text field                        | field-gone                                                               | Pass   | Yes       |
+| WB-INT-059 | capture (jsdom)       | Selection exactly at the read limit (40,000 units) | Captured                                                                 | Pass   | Yes       |
+| WB-INT-060 | rich (jsdom)          | Oversized editor selection                         | too-long                                                                 | Pass   | Yes       |
 
 ## End-to-end
 
@@ -255,6 +257,10 @@ These need a person, because they involve Chrome's own UI or branded Chrome.
 | WB-SEC-025 | Rich editor text changed since checking              | changed; no edit attempted                                                                                                                          | Pass                | Yes       |
 | WB-SEC-026 | Uneditable text never edited                         | contenteditable="false" part untouched; partial                                                                                                     | Pass                | Yes       |
 | WB-SEC-027 | Misplaced editor edit caught (mutation test, manual) | With the selection wait removed, Lexical misapplied the first edit; WriteBetter stopped and showed the "didn't apply a change where expected" alert | Pass (manual, once) | No        |
+| WB-SEC-028 | Oversized selection refused unread (jsdom)           | too-long; field value never read                                                                                                                    | Pass                | Yes       |
+| WB-SEC-029 | Oversized selection refused (Chromium)               | 55,000-char selection: "too long to check"; popup field empty                                                                                       | Pass                | Yes       |
+| WB-SEC-030 | Build gate rejects network calls and unknown URLs    | Planted fetch to an unknown host fails validate:build on both rules                                                                                 | Pass (manual, once) | No        |
+| WB-SEC-031 | Package verification rejects a mismatched zip        | A file in dist/ but not in the zip fails verify:package                                                                                             | Pass (manual, once) | No        |
 
 ## Requirements traceability
 

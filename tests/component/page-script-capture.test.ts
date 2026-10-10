@@ -68,6 +68,32 @@ describe('captureSelection', () => {
     expect(captureSelection()).toEqual({ status: 'empty-selection' });
   });
 
+  // WB-SEC-028
+  it('refuses a selection far over the limit without reading its text', () => {
+    const textarea = mount('<textarea></textarea>') as HTMLTextAreaElement;
+    textarea.value = 'a'.repeat(40_001);
+    select(textarea, 0, 40_001);
+    const read = { count: 0 };
+    const value = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+    Object.defineProperty(textarea, 'value', {
+      get() {
+        read.count++;
+        return value?.get?.call(textarea) as string;
+      },
+    });
+
+    expect(captureSelection()).toEqual({ status: 'too-long' });
+    expect(read.count).toBe(0);
+  });
+
+  // WB-INT-059
+  it('accepts a selection right at the read limit', () => {
+    const textarea = mount('<textarea></textarea>') as HTMLTextAreaElement;
+    textarea.value = 'a'.repeat(40_000);
+    select(textarea, 0, 40_000);
+    expect(captureSelection()).toMatchObject({ status: 'captured' });
+  });
+
   // WB-INT-005
   it('reports no field when nothing on the page has focus', () => {
     mount('<p>Just a paragraph</p>');

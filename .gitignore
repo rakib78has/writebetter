@@ -27,3 +27,4 @@ npm-debug.log*
 
 # Built rich-editor test pages
 tests/fixtures/.built-editors/
+writebetter-sbom.cdx.json

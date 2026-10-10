@@ -118,6 +118,44 @@ for (const file of files.filter((f) => /\.(js|html|css|json)$/.test(f))) {
   if (/\bimport\(\s*["']https?:/.test(source)) fail(`${name} imports a remote module`);
 }
 
+// --- Network surface --------------------------------------------------------
+
+// WriteBetter must not talk to any server. The end-to-end suite checks this
+// at runtime (WB-SEC-018); this checks the shipped code itself, so a new
+// dependency that phones home fails the build before any test runs.
+
+/** URLs allowed in shipped code. None of them is ever requested. */
+const ALLOWED_URLS = [
+  /^http:\/\/www\.w3\.org\//, // XML namespace identifiers used by React DOM
+  /^https:\/\/react\.dev\/errors\//, // React builds error *messages* with this
+  /^https:\/\/tailwindcss\.com$/, // credit comment in the stylesheet
+];
+const URL_PATTERN = /\b(?:https?|wss?):\/\/[^\s"'`)<>]+/g;
+/** Network APIs and the only bundles allowed to use them. */
+const NETWORK_APIS = [
+  // The grammar worker fetches its own WebAssembly file from the package.
+  { name: 'fetch(', allowedIn: /^assets[\\/]grammar\.worker-[\w-]+\.js$/ },
+  { name: 'XMLHttpRequest', allowedIn: null },
+  { name: 'WebSocket', allowedIn: null },
+  { name: 'EventSource', allowedIn: null },
+  { name: 'sendBeacon', allowedIn: null },
+];
+
+for (const file of files.filter((f) => /\.(js|html|css)$/.test(f))) {
+  const source = readFileSync(file, 'utf8');
+  const name = relative(dist, file);
+  for (const [url] of source.matchAll(URL_PATTERN)) {
+    if (!ALLOWED_URLS.some((allowed) => allowed.test(url))) {
+      fail(`${name} contains a URL that is not on the allow-list: ${url}`);
+    }
+  }
+  for (const api of NETWORK_APIS) {
+    if (source.includes(api.name) && !api.allowedIn?.test(name)) {
+      fail(`${name} uses ${api.name.replace('(', '')}, which is not allowed there`);
+    }
+  }
+}
+
 // --- Size -------------------------------------------------------------------
 
 // The grammar engine is one ~16 MB WebAssembly file. A second one means a
