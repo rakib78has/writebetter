@@ -84,8 +84,11 @@ for (const key of ['host_permissions', 'optional_host_permissions']) {
   if (manifest[key]?.length) fail(`${key} must be empty. Found: ${manifest[key].join(', ')}`);
 }
 
+// The only relaxation allowed is 'wasm-unsafe-eval', which permits compiling
+// WebAssembly (the grammar engine) but not JavaScript eval(). The quotes in
+// the pattern matter: 'unsafe-eval' must not match 'wasm-unsafe-eval'.
 const csp = manifest.content_security_policy?.extension_pages ?? '';
-if (!csp.includes("script-src 'self'") || /unsafe-eval|unsafe-inline|https?:/.test(csp)) {
+if (!csp.includes("script-src 'self'") || /'unsafe-eval'|unsafe-inline|https?:/.test(csp)) {
   fail(`extension_pages CSP must allow only bundled scripts. Found: "${csp}"`);
 }
 
@@ -115,6 +118,28 @@ for (const file of files.filter((f) => /\.(js|html|css|json)$/.test(f))) {
   if (/\bimport\(\s*["']https?:/.test(source)) fail(`${name} imports a remote module`);
 }
 
+// --- Size -------------------------------------------------------------------
+
+// The grammar engine is one ~16 MB WebAssembly file. A second one means a
+// different build of the engine was bundled by accident, doubling the size.
+const wasmFiles = files.filter((file) => file.endsWith('.wasm'));
+if (wasmFiles.length !== 1) {
+  fail(
+    `Expected exactly one .wasm file, found ${wasmFiles.length}: ${wasmFiles.map((f) => relative(dist, f)).join(', ')}`
+  );
+}
+
+const MAX_PACKAGE_BYTES = 20 * 1024 * 1024;
+const shippedBytes = files
+  .filter((file) => !file.endsWith('.map'))
+  .reduce((total, file) => total + statSync(file).size, 0);
+if (shippedBytes > MAX_PACKAGE_BYTES) {
+  fail(`Shipped files total ${(shippedBytes / 1048576).toFixed(1)} MB, over the 20 MB budget`);
+}
+
+// Apache-2.0 and MIT both require the licence text to travel with the code.
+requireFile('THIRD_PARTY_NOTICES.txt', 'licences of bundled dependencies');
+
 // --- Report -----------------------------------------------------------------
 
 if (errors.length > 0) {
@@ -123,6 +148,9 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`✔ Build valid: ${manifest.name} v${manifest.version}, ${files.length} files`);
+console.log(
+  `✔ Build valid: ${manifest.name} v${manifest.version}, ${files.length} files, ` +
+    `${(shippedBytes / 1048576).toFixed(1)} MB shipped`
+);
 console.log(`  Permissions: ${(manifest.permissions ?? []).join(', ') || 'none'}`);
 console.log(`  Host permissions: none`);

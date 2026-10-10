@@ -1,6 +1,9 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { MAX_INPUT_CHARACTERS } from '../shared/constants.ts';
 import { getTextStats } from '../shared/text-stats.ts';
+import { fixGrammar, type GrammarReport } from '../writing/fix-grammar.ts';
+import { GrammarCheckError, type GrammarChecker } from '../writing/types.ts';
+import { GrammarResults } from './components/GrammarResults.tsx';
 import { describeSelection } from './selection-message.ts';
 import type { SelectionOutcome } from './selection-source.ts';
 
@@ -12,14 +15,26 @@ const TONE_CLASSES = {
   warning: 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200',
 } as const;
 
+type CheckState =
+  | { status: 'idle' }
+  | { status: 'checking' }
+  | { status: 'done'; report: GrammarReport }
+  | { status: 'error'; message: string };
+
 export interface AppProps {
   /** Reads the user's selection from the page. Injected so tests can fake it. */
   loadSelection: () => Promise<SelectionOutcome>;
+  /** The grammar engine. Injected so tests can fake it. */
+  grammar: GrammarChecker;
 }
 
-export function App({ loadSelection }: AppProps) {
+export function App({ loadSelection, grammar }: AppProps) {
   const [text, setText] = useState('');
   const [selection, setSelection] = useState<SelectionOutcome | 'loading'>('loading');
+  const [check, setCheck] = useState<CheckState>({ status: 'idle' });
+  // The latest text, readable from inside an async callback, so a result for
+  // text the user has since edited can be recognised as stale and dropped.
+  const latestText = useRef(text);
   const stats = getTextStats(text);
   const inputId = useId();
   const statsId = useId();
@@ -31,7 +46,11 @@ export function App({ loadSelection }: AppProps) {
       setSelection(outcome);
       // Never overwrite what the user has already started typing.
       if (outcome.status === 'captured') {
-        setText((current) => (current === '' ? outcome.text : current));
+        setText((current) => {
+          const next = current === '' ? outcome.text : current;
+          latestText.current = next;
+          return next;
+        });
       }
     });
     return () => {
@@ -39,7 +58,33 @@ export function App({ loadSelection }: AppProps) {
     };
   }, [loadSelection]);
 
+  function updateText(next: string) {
+    latestText.current = next;
+    setText(next);
+    // Results describe the text as it was; once it changes they are stale.
+    setCheck({ status: 'idle' });
+  }
+
+  async function runFixGrammar() {
+    const snapshot = text;
+    setCheck({ status: 'checking' });
+    try {
+      const report = await fixGrammar(grammar, snapshot);
+      if (latestText.current === snapshot) setCheck({ status: 'done', report });
+    } catch (error) {
+      if (latestText.current !== snapshot) return;
+      const timeout = error instanceof GrammarCheckError && error.reason === 'timeout';
+      setCheck({
+        status: 'error',
+        message: timeout
+          ? 'The grammar checker took too long. Please try again.'
+          : 'The grammar checker couldn’t start. Close WriteBetter and open it again.',
+      });
+    }
+  }
+
   const message = describeSelection(selection);
+  const canCheck = text.trim() !== '' && !stats.overLimit && check.status !== 'checking';
 
   return (
     <main className="flex w-[360px] flex-col gap-3 bg-white p-4 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -62,7 +107,7 @@ export function App({ loadSelection }: AppProps) {
           id={inputId}
           value={text}
           onChange={(event) => {
-            setText(event.target.value);
+            updateText(event.target.value);
           }}
           aria-describedby={statsId}
           aria-invalid={stats.overLimit}
@@ -84,8 +129,36 @@ export function App({ loadSelection }: AppProps) {
         )}
       </div>
 
-      <p className="text-xs text-slate-600 dark:text-slate-400">
-        Writing actions are not available in this development build yet.
+      <button
+        type="button"
+        onClick={() => {
+          void runFixGrammar();
+        }}
+        disabled={!canCheck}
+        className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {check.status === 'checking' ? 'Checking…' : 'Fix grammar'}
+      </button>
+
+      {/* Announces progress to screen readers; results follow below it. */}
+      <div aria-live="polite" className="flex flex-col gap-2">
+        {check.status === 'checking' && (
+          <p className="text-xs text-slate-600 dark:text-slate-400">Checking your text…</p>
+        )}
+        {check.status === 'done' && <GrammarResults report={check.report} />}
+      </div>
+      {check.status === 'error' && (
+        <p
+          role="alert"
+          className="rounded-md bg-red-50 p-2 text-xs text-red-800 dark:bg-red-950 dark:text-red-300"
+        >
+          {check.message}
+        </p>
+      )}
+
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        Grammar checking runs on your device and supports English only. It can miss problems, so
+        give the result a read.
       </p>
     </main>
   );

@@ -2,17 +2,17 @@
 
 This describes the extension as it is built today. It is updated whenever data handling changes.
 
-## Current behavior (Milestone 2)
+## Current behavior (Milestone 3)
 
-| Question                           | Answer                                                                                                                                              |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| When does WriteBetter read a page? | Only when you click its icon, choose **Improve with WriteBetter** from the right-click menu, or press its shortcut. Never in the background.        |
-| What does it read?                 | Only the text you selected in the focused text box. Not the rest of the box, not the rest of the page, not the page address.                        |
-| What does it never read?           | Password fields, verification-code fields and payment-card fields. They are recognised from their attributes, and their contents are never touched. |
-| Where is the text processed?       | In the popup, on your device. Today it is only counted.                                                                                             |
-| Is anything sent over the network? | No. The extension makes no network requests.                                                                                                        |
-| Is anything stored?                | No. The text is discarded when the popup closes.                                                                                                    |
-| Analytics or telemetry?            | None.                                                                                                                                               |
+| Question                           | Answer                                                                                                                                                          |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| When does WriteBetter read a page? | Only when you click its icon, choose **Improve with WriteBetter** from the right-click menu, or press its shortcut. Never in the background.                    |
+| What does it read?                 | Only the text you selected in the focused text box. Not the rest of the box, not the rest of the page, not the page address.                                    |
+| What does it never read?           | Password fields, verification-code fields and payment-card fields. They are recognised from their attributes, and their contents are never touched.             |
+| Where is the text processed?       | On your device. Grammar is checked by Harper, a grammar engine bundled inside the extension and run in the browser. Nothing is sent anywhere (test WB-SEC-018). |
+| Is anything sent over the network? | No. The extension makes no network requests.                                                                                                                    |
+| Is anything stored?                | No. The text is discarded when the popup closes.                                                                                                                |
+| Analytics or telemetry?            | None.                                                                                                                                                           |
 
 ### How long access to a tab lasts
 

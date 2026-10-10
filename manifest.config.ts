@@ -51,7 +51,11 @@ export function buildManifest(version: string): chrome.runtime.ManifestV3 {
     content_security_policy: {
       // Only scripts bundled in the package may run on extension pages. This
       // is also what the Chrome Web Store requires: no remotely hosted code.
-      extension_pages: "script-src 'self'; object-src 'self'; frame-ancestors 'none'",
+      // 'wasm-unsafe-eval' lets the bundled grammar engine (WebAssembly)
+      // compile. Despite the name, it allows WebAssembly only; JavaScript
+      // eval() stays blocked.
+      extension_pages:
+        "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; frame-ancestors 'none'",
     },
   };
 }

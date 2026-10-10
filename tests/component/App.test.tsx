@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/popup/App.tsx';
 import type { SelectionOutcome } from '../../src/popup/selection-source.ts';
 import { MAX_INPUT_CHARACTERS } from '../../src/shared/constants.ts';
+import { GrammarCheckError, type GrammarChecker, type Issue } from '../../src/writing/types.ts';
 
 const NO_FIELD: SelectionOutcome = { status: 'no-field' };
 
@@ -15,24 +16,52 @@ const captured = (text: string, readOnly = false): SelectionOutcome => ({
   readOnly,
 });
 
-/** A loader the test resolves by hand, to observe the loading state. */
-function deferredLoader() {
-  let resolve!: (outcome: SelectionOutcome) => void;
-  const promise = new Promise<SelectionOutcome>((r) => {
-    resolve = r;
+/** A promise the test settles by hand, to observe in-between states. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
   });
-  return { load: () => promise, resolve };
+  return { promise, resolve, reject };
 }
 
-async function renderPopup(outcome: SelectionOutcome = NO_FIELD) {
+/** Builds an issue for `original` at its first position in `text`. */
+function issueIn(text: string, original: string, replacement: string, autoFix = true): Issue {
+  const start = text.indexOf(original);
+  return {
+    start,
+    end: start + original.length,
+    original,
+    category: 'spelling',
+    message: `Did you mean “${replacement}”?`,
+    replacements: [replacement],
+    autoFix,
+  };
+}
+
+/** A grammar checker that answers every check with `respond(text)`. */
+function fakeGrammar(respond: (text: string) => Promise<Issue[]> = () => Promise.resolve([])) {
+  return {
+    prepare: vi.fn(() => Promise.resolve()),
+    check: vi.fn(respond),
+  } satisfies GrammarChecker;
+}
+
+async function renderPopup(
+  outcome: SelectionOutcome = NO_FIELD,
+  grammar: GrammarChecker = fakeGrammar()
+) {
   const user = userEvent.setup();
-  render(<App loadSelection={() => Promise.resolve(outcome)} />);
+  render(<App loadSelection={() => Promise.resolve(outcome)} grammar={grammar} />);
   const textbox = screen.getByRole('textbox', { name: 'Text to improve' });
   // Let the selection load settle so each test starts from a stable state.
   await screen.findByText(
     /select text in a text box|loaded the text|no text is selected|can’t read|never reads|isn’t supported|went wrong/i
   );
-  return { user, textbox };
+  const fixButton = screen.getByRole('button', { name: 'Fix grammar' });
+  return { user, textbox, fixButton };
 }
 
 describe('popup', () => {
@@ -102,18 +131,18 @@ describe('popup', () => {
   });
 
   // WB-UI-007
-  it('says plainly that writing actions are not available yet', async () => {
+  it('says that checking is local, English-only and fallible', async () => {
     await renderPopup();
-    expect(screen.getByText(/writing actions are not available/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByText(/runs on your device and supports English only/)).toBeInTheDocument();
+    expect(screen.getByText(/can miss problems/)).toBeInTheDocument();
   });
 });
 
 describe('popup loading the page selection', () => {
   // WB-UI-008
   it('announces that it is reading the selection, then fills the field with it', async () => {
-    const loader = deferredLoader();
-    render(<App loadSelection={loader.load} />);
+    const loader = deferred<SelectionOutcome>();
+    render(<App loadSelection={() => loader.promise} grammar={fakeGrammar()} />);
 
     expect(screen.getByRole('status')).toHaveTextContent('Reading your selection…');
 
@@ -131,8 +160,8 @@ describe('popup loading the page selection', () => {
   // WB-UI-009
   it('never overwrites text the user typed while the selection was loading', async () => {
     const user = userEvent.setup();
-    const loader = deferredLoader();
-    render(<App loadSelection={loader.load} />);
+    const loader = deferred<SelectionOutcome>();
+    render(<App loadSelection={() => loader.promise} grammar={fakeGrammar()} />);
     const textbox = screen.getByRole('textbox', { name: 'Text to improve' });
 
     await user.type(textbox, 'my own words');
@@ -165,8 +194,152 @@ describe('popup loading the page selection', () => {
   // WB-UI-012
   it('reads the selection once per opening', async () => {
     const load = vi.fn(() => Promise.resolve(NO_FIELD));
-    render(<App loadSelection={load} />);
+    render(<App loadSelection={load} grammar={fakeGrammar()} />);
     await screen.findByText(/select text in a text box/i);
     expect(load).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('popup Fix grammar', () => {
+  const TEXT = 'This is teh plan, Rakib.';
+
+  // WB-UI-013
+  it('is unavailable until there is text to check, and again when it is too long', async () => {
+    const { user, textbox, fixButton } = await renderPopup();
+    expect(fixButton).toBeDisabled();
+
+    await user.type(textbox, '   ');
+    expect(fixButton).toBeDisabled();
+
+    await user.type(textbox, 'Hi');
+    expect(fixButton).toBeEnabled();
+
+    fireEvent.change(textbox, { target: { value: 'a'.repeat(MAX_INPUT_CHARACTERS + 1) } });
+    expect(fixButton).toBeDisabled();
+  });
+
+  // WB-UI-014
+  it('shows progress, then the corrected text and what was fixed', async () => {
+    const result = deferred<Issue[]>();
+    const grammar = fakeGrammar(() => result.promise);
+    const { user, fixButton } = await renderPopup(captured(TEXT), grammar);
+
+    await user.click(fixButton);
+    expect(fixButton).toBeDisabled();
+    expect(fixButton).toHaveTextContent('Checking…');
+    expect(grammar.check).toHaveBeenCalledWith(TEXT);
+
+    await act(async () => {
+      result.resolve([issueIn(TEXT, 'teh', 'the')]);
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole('textbox', { name: 'Corrected text' })).toHaveValue(
+      'This is the plan, Rakib.'
+    );
+    expect(screen.getByRole('heading', { name: 'Fixed 1 problem' })).toBeInTheDocument();
+    expect(screen.getByText('Did you mean “the”?')).toBeInTheDocument();
+    expect(fixButton).toHaveTextContent('Fix grammar');
+  });
+
+  // WB-UI-015
+  it('keeps the original text untouched in its own field', async () => {
+    const grammar = fakeGrammar(() => Promise.resolve([issueIn(TEXT, 'teh', 'the')]));
+    const { user, textbox, fixButton } = await renderPopup(captured(TEXT), grammar);
+
+    await user.click(fixButton);
+    await screen.findByRole('textbox', { name: 'Corrected text' });
+
+    expect(textbox).toHaveValue(TEXT);
+  });
+
+  // WB-UI-016
+  it('lists problems left for the user without showing a corrected text', async () => {
+    const grammar = fakeGrammar(() => Promise.resolve([issueIn(TEXT, 'Rakib', 'Rabbi', false)]));
+    const { user, fixButton } = await renderPopup(captured(TEXT), grammar);
+
+    await user.click(fixButton);
+
+    expect(
+      await screen.findByRole('heading', { name: '1 possible problem to check yourself' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Corrected text' })).not.toBeInTheDocument();
+  });
+
+  // WB-UI-017
+  it('says so when there is nothing to fix', async () => {
+    const { user, fixButton } = await renderPopup(captured('All good here.'));
+    await user.click(fixButton);
+    expect(await screen.findByText('No problems found.')).toBeInTheDocument();
+  });
+
+  // WB-UI-018
+  it('clears results as soon as the text is edited, so they are never stale', async () => {
+    const grammar = fakeGrammar(() => Promise.resolve([issueIn(TEXT, 'teh', 'the')]));
+    const { user, textbox, fixButton } = await renderPopup(captured(TEXT), grammar);
+    await user.click(fixButton);
+    await screen.findByRole('textbox', { name: 'Corrected text' });
+
+    await user.type(textbox, '!');
+
+    expect(screen.queryByRole('textbox', { name: 'Corrected text' })).not.toBeInTheDocument();
+  });
+
+  // WB-UI-019
+  it('drops a result that arrives after the text was edited', async () => {
+    const result = deferred<Issue[]>();
+    const { user, textbox, fixButton } = await renderPopup(
+      captured(TEXT),
+      fakeGrammar(() => result.promise)
+    );
+    await user.click(fixButton);
+    await user.type(textbox, '!');
+
+    await act(async () => {
+      result.resolve([issueIn(TEXT, 'teh', 'the')]);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole('textbox', { name: 'Corrected text' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Fixed 1 problem')).not.toBeInTheDocument();
+  });
+
+  // WB-UI-020
+  it.each<[string, GrammarCheckError, RegExp]>([
+    ['cannot start', new GrammarCheckError('unavailable'), /couldn’t start/],
+    ['times out', new GrammarCheckError('timeout'), /took too long/],
+  ])('explains when the checker %s, and lets the user retry', async (_label, error, message) => {
+    const grammar = fakeGrammar(() => Promise.reject(error));
+    const { user, textbox, fixButton } = await renderPopup(captured(TEXT), grammar);
+
+    await user.click(fixButton);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(textbox).toHaveValue(TEXT);
+    expect(fixButton).toBeEnabled();
+  });
+
+  // WB-UI-021
+  it('can be run from the keyboard', async () => {
+    const grammar = fakeGrammar();
+    const { user, fixButton } = await renderPopup(captured(TEXT), grammar);
+
+    fixButton.focus();
+    await user.keyboard('{Enter}');
+
+    expect(grammar.check).toHaveBeenCalledOnce();
+  });
+
+  // WB-SEC-017
+  it('renders markup in an issue message as text', async () => {
+    const issue = { ...issueIn(TEXT, 'teh', 'the'), message: '<img src=x onerror=alert(1)>' };
+    const { user, fixButton } = await renderPopup(
+      captured(TEXT),
+      fakeGrammar(() => Promise.resolve([issue]))
+    );
+    await user.click(fixButton);
+
+    expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
+    expect(document.querySelector('img')).toBeNull();
   });
 });

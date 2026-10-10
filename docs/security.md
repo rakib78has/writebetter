@@ -1,6 +1,6 @@
 # Security
 
-## Threat model (Milestone 2)
+## Threat model (Milestone 3)
 
 | Asset                 | Threat                                                        | Current mitigation                                                                                                                                                           |
 | --------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -11,6 +11,9 @@
 | Text the user types   | Rendered as HTML and executes script (XSS)                    | Rendered only through React, which escapes text. `innerHTML`, `outerHTML`, `insertAdjacentHTML` banned by ESLint. WB-SEC-003.                                                |
 | Text the user types   | Leaked through logs or messages                               | `console.log` banned by ESLint. No code logs user text; the context-menu handler ignores Chrome's `selectionText`. WB-SEC-007, WB-INT-023.                                   |
 | The extension package | Ships a credential                                            | `validate:build` scans every bundled file for key patterns and fails the build.                                                                                              |
+| Grammar engine        | Sends text over the network                                   | Harper is bundled; its only fetch is its own `.wasm` from the package. An e2e test fails on any request outside the extension (WB-SEC-018).                                  |
+| Grammar engine        | Changes text in harmful ways                                  | Safeguards: no changes to URLs, emails, code, tags, identifiers; no auto-correction of names or of the first word. See grammar-engine.md.                                    |
+| Worker messages       | Malformed message, or an error that echoes text               | Both directions validated in `protocol.ts`; error responses carry no message. WB-SEC-014–016.                                                                                |
 | The extension package | Runs code fetched at runtime                                  | CSP `script-src 'self'`; `validate:build` rejects remote scripts and imports.                                                                                                |
 | The user's browsing   | Permissions quietly grow                                      | `validate:build` fails on any permission outside its allow-list, and on any host permission.                                                                                 |
 | Build toolchain       | Compromised dependency or GitHub Action                       | Exact versions and a committed lockfile, `npm ci`, `npm audit` in CI, actions pinned to commit SHAs.                                                                         |
@@ -36,6 +39,16 @@ Chrome grants `activeTab` for one tab and keeps it until that tab **navigates to
 ### Frames
 
 The capture function runs only in the tab's main frame. `activeTab` doesn't cover cross-origin iframes, so injecting into all frames would fail on most sites anyway. A focused iframe is reported as unsupported.
+
+## Content Security Policy
+
+`script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; frame-ancestors 'none'`
+
+Only scripts in the package can run. `'wasm-unsafe-eval'` is required to compile the grammar engine's WebAssembly; it does not permit JavaScript `eval()` or `new Function()`. `validate:build` rejects `'unsafe-eval'`, `unsafe-inline` and any remote host.
+
+## Dependencies
+
+Runtime dependencies (shipped to users): `react`, `react-dom`, `harper.js` and their dependencies `scheduler` and `fflate`. All are MIT or Apache-2.0; `THIRD_PARTY_NOTICES.txt` in the package carries their licences. Versions are exact and locked. Harper was checked for network use: its code fetches only the WebAssembly URL it is given.
 
 ## The `?tab=` popup parameter
 

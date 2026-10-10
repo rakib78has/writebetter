@@ -22,8 +22,10 @@ describe('buildManifest', () => {
   // WB-SEC-002
   it('only allows scripts bundled with the extension', () => {
     const csp = manifest.content_security_policy?.extension_pages ?? '';
-    expect(csp).toContain("script-src 'self'");
-    expect(csp).not.toMatch(/unsafe-eval|unsafe-inline|https?:/);
+    expect(csp).toContain("script-src 'self' 'wasm-unsafe-eval';");
+    // 'wasm-unsafe-eval' permits WebAssembly only. JavaScript eval, inline
+    // scripts and remote hosts must stay blocked.
+    expect(csp).not.toMatch(/'unsafe-eval'|unsafe-inline|https?:/);
   });
 
   // WB-UNIT-013

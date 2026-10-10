@@ -2,33 +2,65 @@
 
 Status records the most recent execution. A test is marked **Pass** only after it has actually run.
 
-Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 102 Vitest tests and 18 Playwright tests passed. Milestone 1 also passed in CI (PR #1).
+Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 218 Vitest tests and 21 Playwright tests passed. Milestone 1 also passed in CI (PR #1).
 
 Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run build` and the Playwright Chromium install.
 
 ## Unit
 
-| ID          | Module            | Scenario                                       | Test data                                        | Expected                                          | Status | Automated |
-| ----------- | ----------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------------------------------- | ------ | --------- |
-| WB-UNIT-001 | text-stats        | Empty text                                     | `''`                                             | 0 characters, 0 words, not over limit             | Pass   | Yes       |
-| WB-UNIT-002 | text-stats        | Whitespace only                                | space, tab, newline, space                       | 4 characters, 0 words                             | Pass   | Yes       |
-| WB-UNIT-003 | text-stats        | Mixed whitespace between words                 | `'  Hello,\n\nworld!  How are\tyou? '`           | 5 words                                           | Pass   | Yes       |
-| WB-UNIT-004 | text-stats        | Emoji with skin-tone modifier                  | `👋🏽`                                             | 1 character (string.length is 4)                  | Pass   | Yes       |
-| WB-UNIT-005 | text-stats        | Combining accent; ZWJ family emoji             | `e` + U+0301; `👨‍👩‍👧`                               | 1 character each                                  | Pass   | Yes       |
-| WB-UNIT-006 | text-stats        | Punctuation and emoji alone are not words      | `'Great job 👏 — really !'`                      | 3 words                                           | Pass   | Yes       |
-| WB-UNIT-007 | text-stats        | URLs, emails, hyphenated words, decimals       | sentence with each                               | 9 words, each counted once                        | Pass   | Yes       |
-| WB-UNIT-008 | text-stats        | Cyrillic and Arabic                            | `'Привет мир'`, `'مرحبا بالعالم'`                | 2 words each                                      | Pass   | Yes       |
-| WB-UNIT-009 | text-stats        | Exactly at the limit                           | 5,000 × `a`                                      | Not over limit                                    | Pass   | Yes       |
-| WB-UNIT-010 | text-stats        | One over the limit                             | 5,001 × `a`                                      | Over limit                                        | Pass   | Yes       |
-| WB-UNIT-011 | text-stats        | Limit measured in characters, not UTF-16 units | 5,000 × `👋🏽`                                     | Not over limit                                    | Pass   | Yes       |
-| WB-UNIT-012 | manifest          | Manifest V3 with the given version             | version `1.2.3`                                  | `manifest_version` 3, version 1.2.3               | Pass   | Yes       |
-| WB-UNIT-013 | manifest          | Description within Web Store limit             | n/a                                              | ≤ 132 characters                                  | Pass   | Yes       |
-| WB-UNIT-014 | capture (parse)   | Well-formed capture accepted                   | valid object                                     | Returned unchanged                                | Pass   | Yes       |
-| WB-UNIT-015 | capture (parse)   | Data-less statuses accepted                    | `empty-selection`, `no-field`, `sensitive-field` | Returned unchanged                                | Pass   | Yes       |
-| WB-UNIT-016 | capture (parse)   | Unsupported reasons                            | 3 known, 1 unknown, missing                      | Known accepted; others rejected                   | Pass   | Yes       |
-| WB-UNIT-017 | selection-message | A message for every outcome                    | all 11 outcomes                                  | Right tone and wording                            | Pass   | Yes       |
-| WB-UNIT-018 | manifest          | Keyboard shortcut                              | n/a                                              | `_execute_action` on Alt+Shift+W                  | Pass   | Yes       |
-| WB-UNIT-019 | manifest          | Minimum Chrome version                         | n/a                                              | 127 (first with `openPopup()` for all extensions) | Pass   | Yes       |
+| ID          | Module            | Scenario                                       | Test data                                                 | Expected                                          | Status | Automated |
+| ----------- | ----------------- | ---------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------- | ------ | --------- |
+| WB-UNIT-001 | text-stats        | Empty text                                     | `''`                                                      | 0 characters, 0 words, not over limit             | Pass   | Yes       |
+| WB-UNIT-002 | text-stats        | Whitespace only                                | space, tab, newline, space                                | 4 characters, 0 words                             | Pass   | Yes       |
+| WB-UNIT-003 | text-stats        | Mixed whitespace between words                 | `'  Hello,\n\nworld!  How are\tyou? '`                    | 5 words                                           | Pass   | Yes       |
+| WB-UNIT-004 | text-stats        | Emoji with skin-tone modifier                  | `👋🏽`                                                      | 1 character (string.length is 4)                  | Pass   | Yes       |
+| WB-UNIT-005 | text-stats        | Combining accent; ZWJ family emoji             | `e` + U+0301; `👨‍👩‍👧`                                        | 1 character each                                  | Pass   | Yes       |
+| WB-UNIT-006 | text-stats        | Punctuation and emoji alone are not words      | `'Great job 👏 — really !'`                               | 3 words                                           | Pass   | Yes       |
+| WB-UNIT-007 | text-stats        | URLs, emails, hyphenated words, decimals       | sentence with each                                        | 9 words, each counted once                        | Pass   | Yes       |
+| WB-UNIT-008 | text-stats        | Cyrillic and Arabic                            | `'Привет мир'`, `'مرحبا بالعالم'`                         | 2 words each                                      | Pass   | Yes       |
+| WB-UNIT-009 | text-stats        | Exactly at the limit                           | 5,000 × `a`                                               | Not over limit                                    | Pass   | Yes       |
+| WB-UNIT-010 | text-stats        | One over the limit                             | 5,001 × `a`                                               | Over limit                                        | Pass   | Yes       |
+| WB-UNIT-011 | text-stats        | Limit measured in characters, not UTF-16 units | 5,000 × `👋🏽`                                              | Not over limit                                    | Pass   | Yes       |
+| WB-UNIT-012 | manifest          | Manifest V3 with the given version             | version `1.2.3`                                           | `manifest_version` 3, version 1.2.3               | Pass   | Yes       |
+| WB-UNIT-013 | manifest          | Description within Web Store limit             | n/a                                                       | ≤ 132 characters                                  | Pass   | Yes       |
+| WB-UNIT-014 | capture (parse)   | Well-formed capture accepted                   | valid object                                              | Returned unchanged                                | Pass   | Yes       |
+| WB-UNIT-015 | capture (parse)   | Data-less statuses accepted                    | `empty-selection`, `no-field`, `sensitive-field`          | Returned unchanged                                | Pass   | Yes       |
+| WB-UNIT-016 | capture (parse)   | Unsupported reasons                            | 3 known, 1 unknown, missing                               | Known accepted; others rejected                   | Pass   | Yes       |
+| WB-UNIT-017 | selection-message | A message for every outcome                    | all 11 outcomes                                           | Right tone and wording                            | Pass   | Yes       |
+| WB-UNIT-018 | manifest          | Keyboard shortcut                              | n/a                                                       | `_execute_action` on Alt+Shift+W                  | Pass   | Yes       |
+| WB-UNIT-019 | manifest          | Minimum Chrome version                         | n/a                                                       | 127 (first with `openPopup()` for all extensions) | Pass   | Yes       |
+| WB-UNIT-020 | apply-fixes       | No issues                                      | `All good.`                                               | Unchanged                                         | Pass   | Yes       |
+| WB-UNIT-021 | apply-fixes       | Several fixes, any order                       | `I has a apple.`                                          | `I have an apple.`                                | Pass   | Yes       |
+| WB-UNIT-022 | apply-fixes       | First replacement only                         | `teh` → [the, tech]                                       | `the`                                             | Pass   | Yes       |
+| WB-UNIT-023 | apply-fixes       | Removal fixes                                  | `and and`                                                 | `and`                                             | Pass   | Yes       |
+| WB-UNIT-024 | apply-fixes       | Not-auto-fixable and replacement-less issues   | name, vague, typo                                         | Only the typo applied                             | Pass   | Yes       |
+| WB-UNIT-025 | apply-fixes       | Overlapping fixes                              | `could of` and `of`                                       | First applied, second unresolved                  | Pass   | Yes       |
+| WB-UNIT-026 | apply-fixes       | Offsets that don't match the text              | stale, out of range                                       | Both refused                                      | Pass   | Yes       |
+| WB-UNIT-027 | apply-fixes       | Emoji around a fix                             | `Hi 👋🏽 teh 👨‍👩‍👧 end`                                        | Emoji intact                                      | Pass   | Yes       |
+| WB-UNIT-028 | safeguards        | Protected text                                 | URL, www, email, @, #, code, tags, identifier, path, file | Each protected                                    | Pass   | Yes       |
+| WB-UNIT-029 | safeguards        | Ordinary prose not protected                   | prose with 3.50, <, >                                     | Nothing protected                                 | Pass   | Yes       |
+| WB-UNIT-030 | safeguards        | Issue in protected text                        | `constants.ts`                                            | Dropped                                           | Pass   | Yes       |
+| WB-UNIT-031 | safeguards        | Capitalised misspelling                        | `Rakib`, `NASA`                                           | Reported, not auto-fixed                          | Pass   | Yes       |
+| WB-UNIT-032 | safeguards        | Lowercase spelling, capitalised grammar        | `teh`, `Their`                                            | Auto-fixed                                        | Pass   | Yes       |
+| WB-UNIT-033 | safeguards        | Input not mutated                              | issue object                                              | Unchanged                                         | Pass   | Yes       |
+| WB-UNIT-050 | safeguards        | First word of a possible fragment              | `their is…`                                               | Not auto-capitalised                              | Pass   | Yes       |
+| WB-UNIT-051 | safeguards        | Lone `i`; later capitals                       | `i went on monday`                                        | Both auto-fixed                                   | Pass   | Yes       |
+| WB-UNIT-034 | protocol          | Valid requests                                 | prepare, check                                            | Accepted                                          | Pass   | Yes       |
+| WB-UNIT-035 | protocol          | Valid responses                                | ready, error, result                                      | Accepted                                          | Pass   | Yes       |
+| WB-UNIT-036 | protocol          | Unknown fields dropped                         | error with message; issue with html                       | Stripped                                          | Pass   | Yes       |
+| WB-UNIT-037 | harper-issues     | Lint → Issue, plain-text mode                  | `teh`                                                     | Issue with offsets; `language: plaintext`         | Pass   | Yes       |
+| WB-UNIT-038 | harper-issues     | Kind → category                                | 6 kinds                                                   | Mapped                                            | Pass   | Yes       |
+| WB-UNIT-039 | harper-issues     | Style kinds ignored                            | 6 kinds                                                   | No issues                                         | Pass   | Yes       |
+| WB-UNIT-040 | harper-issues     | Remove / insert-after suggestions              | `and `, `done`                                            | `""`, `done.`                                     | Pass   | Yes       |
+| WB-UNIT-041 | harper-issues     | Replacement list                               | 6 suggestions                                             | ≤ 3 distinct, all changing the text               | Pass   | Yes       |
+| WB-UNIT-042 | harper-issues     | No replacement                                 | lint with none                                            | `autoFix: false`                                  | Pass   | Yes       |
+| WB-UNIT-043 | harper-issues     | Mismatched offsets                             | wrong problem text                                        | Dropped                                           | Pass   | Yes       |
+| WB-UNIT-044 | harper-issues     | WebAssembly memory                             | 2 lints                                                   | Every lint, span, suggestion freed                | Pass   | Yes       |
+| WB-UNIT-045 | worker-handler    | prepare                                        | n/a                                                       | `ready` after setup                               | Pass   | Yes       |
+| WB-UNIT-046 | worker-handler    | check                                          | `fine`                                                    | `result`                                          | Pass   | Yes       |
+| WB-UNIT-047 | worker-handler    | Engine failure                                 | setup or lint throws                                      | Bare `error`                                      | Pass   | Yes       |
+| WB-UNIT-048 | worker-handler    | Malformed request with id                      | `type: eval`                                              | `error`                                           | Pass   | Yes       |
+| WB-UNIT-049 | worker-handler    | No usable id                                   | null, missing, string                                     | Ignored                                           | Pass   | Yes       |
 
 ## UI (component)
 
@@ -46,34 +78,55 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-UI-010 | popup  | Read-only field mentioned                     | Capture with `readOnly`                     | Status mentions read-only                                      | Pass   | Yes       |
 | WB-UI-011 | popup  | Non-capture outcomes explained                | Empty selection, password, restricted, rich | Matching status; field left empty                              | Pass   | Yes       |
 | WB-UI-012 | popup  | Selection read once per opening               | Render                                      | Loader called exactly once                                     | Pass   | Yes       |
+| WB-UI-013 | popup  | Fix grammar availability                      | Empty, spaces, text, over limit             | Disabled, disabled, enabled, disabled                          | Pass   | Yes       |
+| WB-UI-014 | popup  | Progress then results                         | Click; resolve with one fix                 | "Checking…", then corrected text, "Fixed 1 problem", message   | Pass   | Yes       |
+| WB-UI-015 | popup  | Original preserved                            | Click Fix grammar                           | Input field unchanged                                          | Pass   | Yes       |
+| WB-UI-016 | popup  | Review-only issues                            | Resolve with non-auto-fix issue             | "1 possible problem…"; no corrected text                       | Pass   | Yes       |
+| WB-UI-017 | popup  | Nothing to fix                                | Resolve with []                             | "No problems found."                                           | Pass   | Yes       |
+| WB-UI-018 | popup  | Results cleared on edit                       | Fix, then type                              | Results gone                                                   | Pass   | Yes       |
+| WB-UI-019 | popup  | Late result for edited text                   | Click, type, then resolve                   | Result dropped                                                 | Pass   | Yes       |
+| WB-UI-020 | popup  | Engine failure / timeout                      | Reject with each reason                     | Alert with matching advice; text kept; can retry               | Pass   | Yes       |
+| WB-UI-021 | popup  | Keyboard                                      | Focus button, Enter                         | Check runs                                                     | Pass   | Yes       |
 
 ## Integration
 
-| ID         | Module           | Scenario                                 | Expected                                                                 | Status | Automated |
-| ---------- | ---------------- | ---------------------------------------- | ------------------------------------------------------------------------ | ------ | --------- |
-| WB-INT-001 | capture (jsdom)  | Selection in a textarea                  | Only the selected part, with offsets                                     | Pass   | Yes       |
-| WB-INT-002 | capture (jsdom)  | Inputs of type text, search, url, tel    | Selected text returned                                                   | Pass   | Yes       |
-| WB-INT-003 | capture (jsdom)  | Emoji in selection                       | Returned intact                                                          | Pass   | Yes       |
-| WB-INT-004 | capture (jsdom)  | Caret with no selection                  | `empty-selection`                                                        | Pass   | Yes       |
-| WB-INT-005 | capture (jsdom)  | Nothing focused                          | `no-field`                                                               | Pass   | Yes       |
-| WB-INT-006 | capture (jsdom)  | Ordinary autocomplete token (`name`)     | Captured normally                                                        | Pass   | Yes       |
-| WB-INT-007 | capture (jsdom)  | Email and number inputs                  | `unsupported-field` / `input-type`                                       | Pass   | Yes       |
-| WB-INT-008 | capture (jsdom)  | Read-only textarea                       | Captured with `readOnly: true`                                           | Pass   | Yes       |
-| WB-INT-009 | capture (jsdom)  | Contenteditable editor                   | `unsupported-field` / `contenteditable`                                  | Pass   | Yes       |
-| WB-INT-010 | capture (jsdom)  | Focused iframe                           | `unsupported-field` / `frame`                                            | Pass   | Yes       |
-| WB-INT-011 | capture (jsdom)  | Field inside an open shadow root         | Captured                                                                 | Pass   | Yes       |
-| WB-INT-012 | selection-source | Reads the popup window's active tab      | Queries active tab; injects `captureSelection` into it                   | Pass   | Yes       |
-| WB-INT-013 | selection-source | Main frame only                          | No `allFrames` in the injection target                                   | Pass   | Yes       |
-| WB-INT-014 | selection-source | `?tab=42`                                | Injects into tab 42 without querying                                     | Pass   | Yes       |
-| WB-INT-015 | selection-source | Invalid `?tab=` values                   | `abc`, `-1`, `1.5`, empty, `1e3`, huge: `page-unavailable`, no injection | Pass   | Yes       |
-| WB-INT-016 | selection-source | No active tab                            | `page-unavailable`                                                       | Pass   | Yes       |
-| WB-INT-017 | selection-source | Chrome refuses to script the page        | `page-unavailable`                                                       | Pass   | Yes       |
-| WB-INT-018 | selection-source | No result, undefined or malformed result | `failed`                                                                 | Pass   | Yes       |
-| WB-INT-019 | context-menu     | Registration                             | `removeAll` then one `editable`-only item                                | Pass   | Yes       |
-| WB-INT-020 | context-menu     | Creation failure                         | Logged with Chrome's error message                                       | Pass   | Yes       |
-| WB-INT-021 | context-menu     | Click on own item                        | `openPopup({ windowId })`                                                | Pass   | Yes       |
-| WB-INT-022 | context-menu     | Click on another item                    | Ignored                                                                  | Pass   | Yes       |
-| WB-INT-023 | context-menu     | `openPopup` rejects                      | Warning logged, without the selected text; no throw                      | Pass   | Yes       |
+| ID         | Module                | Scenario                                     | Expected                                                                 | Status | Automated |
+| ---------- | --------------------- | -------------------------------------------- | ------------------------------------------------------------------------ | ------ | --------- |
+| WB-INT-001 | capture (jsdom)       | Selection in a textarea                      | Only the selected part, with offsets                                     | Pass   | Yes       |
+| WB-INT-002 | capture (jsdom)       | Inputs of type text, search, url, tel        | Selected text returned                                                   | Pass   | Yes       |
+| WB-INT-003 | capture (jsdom)       | Emoji in selection                           | Returned intact                                                          | Pass   | Yes       |
+| WB-INT-004 | capture (jsdom)       | Caret with no selection                      | `empty-selection`                                                        | Pass   | Yes       |
+| WB-INT-005 | capture (jsdom)       | Nothing focused                              | `no-field`                                                               | Pass   | Yes       |
+| WB-INT-006 | capture (jsdom)       | Ordinary autocomplete token (`name`)         | Captured normally                                                        | Pass   | Yes       |
+| WB-INT-007 | capture (jsdom)       | Email and number inputs                      | `unsupported-field` / `input-type`                                       | Pass   | Yes       |
+| WB-INT-008 | capture (jsdom)       | Read-only textarea                           | Captured with `readOnly: true`                                           | Pass   | Yes       |
+| WB-INT-009 | capture (jsdom)       | Contenteditable editor                       | `unsupported-field` / `contenteditable`                                  | Pass   | Yes       |
+| WB-INT-010 | capture (jsdom)       | Focused iframe                               | `unsupported-field` / `frame`                                            | Pass   | Yes       |
+| WB-INT-011 | capture (jsdom)       | Field inside an open shadow root             | Captured                                                                 | Pass   | Yes       |
+| WB-INT-012 | selection-source      | Reads the popup window's active tab          | Queries active tab; injects `captureSelection` into it                   | Pass   | Yes       |
+| WB-INT-013 | selection-source      | Main frame only                              | No `allFrames` in the injection target                                   | Pass   | Yes       |
+| WB-INT-014 | selection-source      | `?tab=42`                                    | Injects into tab 42 without querying                                     | Pass   | Yes       |
+| WB-INT-015 | selection-source      | Invalid `?tab=` values                       | `abc`, `-1`, `1.5`, empty, `1e3`, huge: `page-unavailable`, no injection | Pass   | Yes       |
+| WB-INT-016 | selection-source      | No active tab                                | `page-unavailable`                                                       | Pass   | Yes       |
+| WB-INT-017 | selection-source      | Chrome refuses to script the page            | `page-unavailable`                                                       | Pass   | Yes       |
+| WB-INT-018 | selection-source      | No result, undefined or malformed result     | `failed`                                                                 | Pass   | Yes       |
+| WB-INT-019 | context-menu          | Registration                                 | `removeAll` then one `editable`-only item                                | Pass   | Yes       |
+| WB-INT-020 | context-menu          | Creation failure                             | Logged with Chrome's error message                                       | Pass   | Yes       |
+| WB-INT-021 | context-menu          | Click on own item                            | `openPopup({ windowId })`                                                | Pass   | Yes       |
+| WB-INT-022 | context-menu          | Click on another item                        | Ignored                                                                  | Pass   | Yes       |
+| WB-INT-023 | context-menu          | `openPopup` rejects                          | Warning logged, without the selected text; no throw                      | Pass   | Yes       |
+| WB-INT-024 | grammar (real Harper) | 17 errors fixed                              | Exact corrected text; nothing left for review                            | Pass   | Yes       |
+| WB-INT-025 | grammar (real Harper) | 2 known misses                               | Text unchanged (fails if an upgrade starts catching them)                | Pass   | Yes       |
+| WB-INT-026 | grammar (real Harper) | Names, capitalised misspelling, fragments    | Held for review, exact output                                            | Pass   | Yes       |
+| WB-INT-027 | grammar (real Harper) | 5 clean texts incl. URLs, code, identifiers  | No issues                                                                | Pass   | Yes       |
+| WB-INT-028 | grammar (real Harper) | 5,000 characters                             | Completes well under 2 s                                                 | Pass   | Yes       |
+| WB-INT-029 | worker-checker        | Lazy start, one preparation, issues returned | One worker; prepare once                                                 | Pass   | Yes       |
+| WB-INT-030 | worker-checker        | Concurrent calls                             | One prepare request                                                      | Pass   | Yes       |
+| WB-INT-031 | worker-checker        | Worker fails to load                         | `unavailable`; worker terminated; next call recovers                     | Pass   | Yes       |
+| WB-INT-032 | worker-checker        | Engine error                                 | `unavailable`                                                            | Pass   | Yes       |
+| WB-INT-033 | worker-checker        | Check never answered                         | `timeout`; recovers                                                      | Pass   | Yes       |
+| WB-INT-034 | worker-checker        | Prepare never answered                       | `timeout`                                                                | Pass   | Yes       |
+| WB-INT-035 | worker-checker        | Malformed or unknown responses               | Ignored                                                                  | Pass   | Yes       |
 
 ## End-to-end
 
@@ -94,6 +147,8 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-E2E-014 | Access ends on cross-origin navigation | Invoke; navigate to other origin; read again           | "can't read this page"                                | Pass   | Yes       |
 | WB-E2E-016 | Access survives same-origin navigation | Invoke; navigate within site; select; read again       | Field filled                                          | Pass   | Yes       |
 | WB-E2E-015 | `openPopup()` works from the worker    | Call from service worker                               | Popup target appears                                  | Pass   | Yes       |
+| WB-E2E-017 | Fix grammar with the real engine       | Type "I has a apple.", click                           | "I have an apple."; "Fixed 2 problems"                | Pass   | Yes       |
+| WB-E2E-018 | Full journey                           | Select fragment on page, invoke, Fix grammar           | "we were late and the build failed."; page unchanged  | Pass   | Yes       |
 
 ## Manual (real Google Chrome)
 
@@ -123,3 +178,9 @@ These need a person, because they involve Chrome's own UI or branded Chrome.
 | WB-SEC-010 | Password field refused (Chromium)             | Status warns; text not shown anywhere in popup                                                         | Pass                | Yes       |
 | WB-SEC-011 | One-time-code field refused (Chromium)        | Status warns; field empty                                                                              | Pass                | Yes       |
 | WB-SEC-012 | No access without user invocation (Chromium)  | Popup told the tab id, but not invoked: "can't read this page"                                         | Pass                | Yes       |
+| WB-SEC-013 | Markup in text is not "corrected"             | `<img src=x onerror=…> teh end` → only `teh` fixed                                                     | Pass                | Yes       |
+| WB-SEC-014 | Malformed worker requests rejected            | 6 shapes incl. oversized text                                                                          | Pass                | Yes       |
+| WB-SEC-015 | Malformed worker responses rejected           | 9 shapes                                                                                               | Pass                | Yes       |
+| WB-SEC-016 | Errors never contain the text                 | Failure message excludes the draft                                                                     | Pass                | Yes       |
+| WB-SEC-017 | Markup in an issue message shown as text      | No `img` element created                                                                               | Pass                | Yes       |
+| WB-SEC-018 | No network while checking (Chromium)          | Every request is to the extension itself; no console errors                                            | Pass                | Yes       |

@@ -37,9 +37,13 @@ export default defineConfig({
       reporter: ['text', 'lcov', 'json-summary'],
       reportsDirectory: 'coverage',
       include: ['src/**/*.{ts,tsx}'],
-      // Thin entry points that only wire real Chrome APIs together. The
+      // Thin entry points that only wire real browser APIs together. The
       // end-to-end suite exercises them in a real browser.
-      exclude: ['src/popup/main.tsx', 'src/background/service-worker.ts'],
+      exclude: [
+        'src/popup/main.tsx',
+        'src/background/service-worker.ts',
+        'src/writing/local/grammar.worker.ts',
+      ],
       thresholds: {
         lines: 90,
         functions: 90,

@@ -33,6 +33,18 @@ src/
     context-menu.ts        Menu registration and click handling
   content/
     capture-selection.ts   Self-contained function injected into the page
+  writing/                The writing engine. Knows nothing about Chrome or the UI
+    types.ts               Issue, GrammarChecker, GrammarCheckError
+    fix-grammar.ts         The "Fix grammar" action: check → safeguards → apply
+    safeguards.ts          Never touch URLs/code/names; no auto-capitalised fragments
+    apply-fixes.ts         Applies the safe fixes to produce the corrected text
+    local/                 Harper, the on-device engine
+      grammar.worker.ts    Worker entry point
+      worker-handler.ts    Worker logic (testable without a worker)
+      worker-checker.ts    Popup side: GrammarChecker over postMessage, timeouts
+      protocol.ts          Validated message types between the two
+      harper-issues.ts     The only file that knows Harper's types
+  popup/components/       GrammarResults.tsx
   shared/                  Logic with no Chrome or DOM dependency
     capture.ts             CaptureResult type and parseCaptureResult() validator
     constants.ts           MAX_INPUT_CHARACTERS
@@ -44,7 +56,7 @@ scripts/                   validate-build, package, generate-icons
 tests/                     unit/, component/, integration/, e2e/, fixtures/, helpers/
 ```
 
-Folders from the target structure (`writing/`, `messaging/`, `storage/`) are created when the milestone that needs them begins, not before. Empty folders would document intentions as if they were code.
+Folders from the target structure (`messaging/`, `storage/`, `writing/remote/`) are created when the milestone that needs them begins, not before. Empty folders would document intentions as if they were code.
 
 ## Reading the selection (Milestone 2)
 
@@ -67,6 +79,10 @@ popup: parseCaptureResult() → describeSelection() → fill the text box
 ```
 
 There is no long-lived content script and no runtime messaging yet: `executeScript` returns the function's result directly to the popup. That is the smallest design that works, and it means none of WriteBetter's code runs in a page until the user asks.
+
+## Fixing grammar (Milestone 3)
+
+See [grammar-engine.md](grammar-engine.md) for the engine choice, measurements and limits. In short: the popup starts a Web Worker as soon as it opens; the worker loads Harper (WebAssembly); "Fix grammar" sends the text, gets `Issue[]` back, applies WriteBetter's safeguards, then applies the safe fixes. The popup depends only on the `GrammarChecker` interface, so a remote AI engine can be added beside Harper later without UI changes.
 
 ## Planned data flow
 
@@ -119,3 +135,15 @@ The right-click entry calls `chrome.action.openPopup()`, available to all extens
 ### D8. Chrome APIs are passed in, not read from the global
 
 `loadSelection(api, …)` and the context-menu functions take the slice of `chrome` they use as a parameter, and tests pass a small fake. This avoids global mocks that leak between tests, and the type (`Pick<typeof chrome.tabs, 'query'>`) documents exactly which APIs each module touches.
+
+### D9. Harper for local grammar
+
+See [grammar-engine.md](grammar-engine.md#options-considered-october-2026). It was the only option that does real grammar, runs locally and is actively maintained. The cost is 16 MB and English only.
+
+### D10. Harper behind an interface, in our own worker
+
+Only `harper-issues.ts` imports Harper's types; everything else uses `Issue` and `GrammarChecker`. Harper runs in a Web Worker so the 1–2 s startup and each check never freeze the popup. Harper's own worker helper is unusable under the extension's CSP (it uses a `blob:` URL), so the worker is a bundled file of ours.
+
+### D11. Safeguards outside the engine
+
+Rules about what may be changed automatically (`safeguards.ts`) live outside the engine adapter, so they will apply equally to a future remote engine. They were each added because a test showed the engine doing something harmful: changing names, mangling HTML, capitalising fragments.

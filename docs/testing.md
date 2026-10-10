@@ -14,6 +14,7 @@
 
 - **Unit tests** check logic exhaustively and fast: dozens of edge cases in milliseconds.
 - **Component tests** check code that touches the DOM. React components are queried the way a user or screen reader finds them: by role and accessible name (`getByRole('textbox', { name: 'Text to improve' })`), never by CSS class. If a test can't find an element by its accessible name, neither can assistive technology. The capture function also runs here against jsdom, for its many edge cases.
+- **Integration tests** also include the **grammar accuracy suite**, which runs the real Harper engine in Node through the full Fix grammar pipeline against `tests/fixtures/grammar-cases.json`. Known misses are recorded too: if a Harper upgrade starts catching one, its test fails, so the fixture is updated on purpose rather than silently.
 - **Integration tests** check the modules that call Chrome APIs (`selection-source`, `context-menu`) with a small fake passed in as a parameter. Each module receives the API as an argument rather than reading the global `chrome`, so no global mocking is needed.
 - **End-to-end tests** prove what the others cannot: the built extension loads, permissions actually grant (and withhold) access, the injected function survives minification, and the popup works against real pages.
 
@@ -35,6 +36,10 @@ Playwright cannot attach to the popup window that opens, so the fixture then ope
 
 `openPopupWithoutAccess(page)` does the same without the click, to prove that access is refused.
 
+### Harper in Node
+
+`tests/helpers/harper-node.ts` loads the WebAssembly as a `data:` URL. harper.js's built-in Node loader breaks on Windows paths (it reads `new URL(path).pathname`, which gives `/C:/…`), and a `data:` URL works on every platform.
+
 ### What cannot be automated
 
 - Clicking Chrome's native right-click menu. The handler is integration-tested, and WB-E2E-015 proves that `chrome.action.openPopup()` works in this Chromium. Manual check: WB-MAN-002.
@@ -44,7 +49,7 @@ Watch a run: `npx playwright test --headed`. On failure, traces and screenshots 
 
 ## Coverage
 
-Coverage is measured on all of `src/`, with thresholds of 90% lines, functions and statements and 85% branches. Two thin entry points are excluded: `popup/main.tsx` and `background/service-worker.ts`, which only wire real Chrome APIs together. The e2e suite exercises both. Coverage is a floor, not a goal: a test that executes a line without asserting on its result adds coverage but no safety.
+Coverage is measured on all of `src/`, with thresholds of 90% lines, functions and statements and 85% branches. Three thin entry points are excluded: `popup/main.tsx`, `background/service-worker.ts` and `writing/local/grammar.worker.ts`, which only wire real browser APIs together. The e2e suite exercises both. Coverage is a floor, not a goal: a test that executes a line without asserting on its result adds coverage but no safety.
 
 ## Conventions
 

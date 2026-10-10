@@ -1,0 +1,145 @@
+{
+  "$comment": "Regression fixtures for Fix grammar with harper.js 2.10.0. 'corrected' is the exact expected output. Known misses are recorded as such: if an upgrade starts catching one, its test fails so the fixture can be updated deliberately.",
+  "fixed": [
+    {
+      "id": "their-theyre",
+      "text": "Their going to the park tomorrow.",
+      "corrected": "They're going to the park tomorrow."
+    },
+    {
+      "id": "subject-verb-and-article",
+      "text": "I has a apple.",
+      "corrected": "I have an apple."
+    },
+    {
+      "id": "missing-apostrophe",
+      "text": "She dont like it.",
+      "corrected": "She don't like it."
+    },
+    {
+      "id": "typo",
+      "text": "This is teh best plan.",
+      "corrected": "This is the best plan."
+    },
+    {
+      "id": "agreement-and-repetition",
+      "text": "We was late, and and the meeting started.",
+      "corrected": "We were late, and the meeting started."
+    },
+    {
+      "id": "could-of",
+      "text": "It could of been worse.",
+      "corrected": "It could have been worse."
+    },
+    {
+      "id": "its-its",
+      "text": "Its a nice day outside.",
+      "corrected": "It's a nice day outside."
+    },
+    {
+      "id": "spelling",
+      "text": "I recieved your email yesterday.",
+      "corrected": "I received your email yesterday."
+    },
+    {
+      "id": "third-person",
+      "text": "He go to school every day.",
+      "corrected": "He goes to school every day."
+    },
+    {
+      "id": "alot",
+      "text": "Alot of people came to the event.",
+      "corrected": "A lot of people came to the event."
+    },
+    {
+      "id": "day-name",
+      "text": "The meeting is on monday morning.",
+      "corrected": "The meeting is on Monday morning."
+    },
+    {
+      "id": "lowercase-i",
+      "text": "i think this is fine.",
+      "corrected": "I think this is fine."
+    },
+    {
+      "id": "should-of",
+      "text": "We should of known better.",
+      "corrected": "We should have known better."
+    },
+    {
+      "id": "after-emoji",
+      "text": "Great 👋🏽 job, teh team did it.",
+      "corrected": "Great 👋🏽 job, the team did it."
+    },
+    {
+      "id": "after-accents",
+      "text": "Café naïve résumé, teh end.",
+      "corrected": "Café naïve résumé, the end."
+    },
+    {
+      "id": "multi-line",
+      "text": "Dear team,\n\nI has attached the report.\nThanks",
+      "corrected": "Dear team,\n\nI have attached the report.\nThanks"
+    },
+    {
+      "id": "their-there",
+      "text": "Dear team, their is a problem with the build.",
+      "corrected": "Dear team, there is a problem with the build."
+    }
+  ],
+  "knownMisses": [
+    {
+      "id": "your-youre",
+      "text": "Your welcome to join us."
+    },
+    {
+      "id": "object-pronoun",
+      "text": "Please send it to John and I."
+    }
+  ],
+  "reviewNotFixed": [
+    {
+      "id": "capitalised-misspelling",
+      "text": "Recieved the files, thanks.",
+      "review": ["Recieved"]
+    },
+    {
+      "id": "names",
+      "text": "Rakib met Nguyen and Siobhan in Dhaka last Tuesday.",
+      "review": ["Rakib", "Siobhan"]
+    },
+    {
+      "id": "fragment-first-word",
+      "text": "we was late and teh build failed.",
+      "review": ["we"],
+      "corrected": "we were late and the build failed."
+    },
+    {
+      "id": "fragment-starting-their",
+      "text": "their is a problem with the build.",
+      "review": ["their"]
+    }
+  ],
+  "clean": [
+    {
+      "id": "business",
+      "text": "The quarterly report is attached for your review."
+    },
+    {
+      "id": "url-and-email",
+      "text": "Run npm install, then open https://example.com/a-b?c=1 or email ada@example.com."
+    },
+    {
+      "id": "identifiers",
+      "text": "Set MAX_INPUT_CHARACTERS to 5,000 in constants.ts before the 3.5 release."
+    },
+    {
+      "id": "friendly",
+      "text": "Thanks so much for your help with the onboarding docs!"
+    },
+    {
+      "id": "mentions-tags-code-paths",
+      "text": "Ping @rakib78has about #release, and check `npm ci` output in src/popup."
+    }
+  ]
+}
