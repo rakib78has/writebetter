@@ -5,10 +5,13 @@
  * shapes, and the version is read from package.json at build time so the two
  * can never drift apart. vite.config.ts emits the result as dist/manifest.json.
  *
- * Permissions are deliberately empty in Milestone 1: the popup works on text
- * typed into it, so it needs no access to any page. Every permission added
- * later must also be added to the allow-list in scripts/validate-build.mjs and
- * justified in docs/security.md.
+ * Permissions are the minimum needed to read a selection when the user asks:
+ * `activeTab` grants access to the current tab only after a click on the
+ * icon, the context-menu entry or the keyboard shortcut, and `scripting` lets
+ * the extension run its capture function in that tab at that moment. There
+ * are no host permissions and no always-on content scripts. Every permission
+ * must also be in the allow-list in scripts/validate-build.mjs and justified
+ * in docs/security.md.
  */
 
 const ICONS = {
@@ -24,8 +27,17 @@ export function buildManifest(version: string): chrome.runtime.ManifestV3 {
     name: 'WriteBetter',
     version,
     description: 'Fix grammar and improve the clarity and tone of your writing, privately.',
-    minimum_chrome_version: '116',
-    permissions: [],
+    // 127 is the first version where any extension may call
+    // chrome.action.openPopup(), which the context menu relies on.
+    minimum_chrome_version: '127',
+    permissions: ['activeTab', 'contextMenus', 'scripting'],
+    commands: {
+      // The reserved `_execute_action` command opens the popup exactly as a
+      // click on the icon does, including the activeTab grant.
+      _execute_action: {
+        suggested_key: { default: 'Alt+Shift+W' },
+      },
+    },
     action: {
       default_popup: 'popup/index.html',
       default_title: 'WriteBetter',
@@ -39,7 +51,11 @@ export function buildManifest(version: string): chrome.runtime.ManifestV3 {
     content_security_policy: {
       // Only scripts bundled in the package may run on extension pages. This
       // is also what the Chrome Web Store requires: no remotely hosted code.
-      extension_pages: "script-src 'self'; object-src 'self'; frame-ancestors 'none'",
+      // 'wasm-unsafe-eval' lets the bundled grammar engine (WebAssembly)
+      // compile. Despite the name, it allows WebAssembly only; JavaScript
+      // eval() stays blocked.
+      extension_pages:
+        "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; frame-ancestors 'none'",
     },
   };
 }

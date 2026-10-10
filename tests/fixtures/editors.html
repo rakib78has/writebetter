@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WriteBetter test page: editors</title>
+  </head>
+  <body>
+    <h1>Editors</h1>
+    <p id="plain">A plain paragraph that is not editable.</p>
+
+    <label
+      >Message <textarea id="message">Dear team, their is a problem with the build.</textarea>
+    </label>
+    <label>Draft <textarea id="draft">Hi all, we was late and teh build failed.</textarea></label>
+    <label>Subject <input id="subject" type="text" value="Quick question about invoices" /></label>
+    <label>Password <input id="password" type="password" value="hunter2-secret" /></label>
+    <label>Code <input id="otp" type="text" autocomplete="one-time-code" value="481516" /></label>
+    <label>Email <input id="email" type="email" value="ada@example.com" /></label>
+    <label>Notes <textarea id="readonly" readonly>This note cannot be edited.</textarea></label>
+    <div id="rich" contenteditable="true">A rich text editor.</div>
+  </body>
+</html>

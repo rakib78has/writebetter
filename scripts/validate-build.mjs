@@ -16,7 +16,7 @@ const dist = join(root, 'dist');
 
 /** Permissions the extension may request. Adding one requires editing this
  *  list *and* justifying it in docs/security.md. */
-const ALLOWED_PERMISSIONS = new Set([]);
+const ALLOWED_PERMISSIONS = new Set(['activeTab', 'contextMenus', 'scripting']);
 
 /** Patterns that look like credentials. The extension must never ship any. */
 const SECRET_PATTERNS = [
@@ -31,10 +31,10 @@ const SECRET_PATTERNS = [
 const errors = [];
 const fail = (message) => errors.push(message);
 
-function requireFile(relativePath, reason, { allowEmpty = false } = {}) {
+function requireFile(relativePath, reason) {
   const full = join(dist, relativePath);
   if (!existsSync(full)) return fail(`Missing ${relativePath} (${reason})`);
-  if (!allowEmpty && statSync(full).size === 0) fail(`${relativePath} is empty (${reason})`);
+  if (statSync(full).size === 0) fail(`${relativePath} is empty (${reason})`);
 }
 
 function listFiles(dir) {
@@ -84,19 +84,17 @@ for (const key of ['host_permissions', 'optional_host_permissions']) {
   if (manifest[key]?.length) fail(`${key} must be empty. Found: ${manifest[key].join(', ')}`);
 }
 
+// The only relaxation allowed is 'wasm-unsafe-eval', which permits compiling
+// WebAssembly (the grammar engine) but not JavaScript eval(). The quotes in
+// the pattern matter: 'unsafe-eval' must not match 'wasm-unsafe-eval'.
 const csp = manifest.content_security_policy?.extension_pages ?? '';
-if (!csp.includes("script-src 'self'") || /unsafe-eval|unsafe-inline|https?:/.test(csp)) {
+if (!csp.includes("script-src 'self'") || /'unsafe-eval'|unsafe-inline|https?:/.test(csp)) {
   fail(`extension_pages CSP must allow only bundled scripts. Found: "${csp}"`);
 }
 
 // --- Referenced files -------------------------------------------------------
 
-// The worker has no event handlers until Milestone 2, so it builds to an empty
-// file, which Chrome loads without complaint. Drop `allowEmpty` once it does
-// real work, so a broken worker build is caught here again.
-requireFile(manifest.background?.service_worker, 'background.service_worker', {
-  allowEmpty: true,
-});
+requireFile(manifest.background?.service_worker, 'background.service_worker');
 requireFile(manifest.action?.default_popup, 'action.default_popup');
 for (const [size, path] of Object.entries(manifest.icons ?? {})) requireFile(path, `icons.${size}`);
 for (const [size, path] of Object.entries(manifest.action?.default_icon ?? {})) {
@@ -120,6 +118,28 @@ for (const file of files.filter((f) => /\.(js|html|css|json)$/.test(f))) {
   if (/\bimport\(\s*["']https?:/.test(source)) fail(`${name} imports a remote module`);
 }
 
+// --- Size -------------------------------------------------------------------
+
+// The grammar engine is one ~16 MB WebAssembly file. A second one means a
+// different build of the engine was bundled by accident, doubling the size.
+const wasmFiles = files.filter((file) => file.endsWith('.wasm'));
+if (wasmFiles.length !== 1) {
+  fail(
+    `Expected exactly one .wasm file, found ${wasmFiles.length}: ${wasmFiles.map((f) => relative(dist, f)).join(', ')}`
+  );
+}
+
+const MAX_PACKAGE_BYTES = 20 * 1024 * 1024;
+const shippedBytes = files
+  .filter((file) => !file.endsWith('.map'))
+  .reduce((total, file) => total + statSync(file).size, 0);
+if (shippedBytes > MAX_PACKAGE_BYTES) {
+  fail(`Shipped files total ${(shippedBytes / 1048576).toFixed(1)} MB, over the 20 MB budget`);
+}
+
+// Apache-2.0 and MIT both require the licence text to travel with the code.
+requireFile('THIRD_PARTY_NOTICES.txt', 'licences of bundled dependencies');
+
 // --- Report -----------------------------------------------------------------
 
 if (errors.length > 0) {
@@ -128,6 +148,9 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`✔ Build valid: ${manifest.name} v${manifest.version}, ${files.length} files`);
+console.log(
+  `✔ Build valid: ${manifest.name} v${manifest.version}, ${files.length} files, ` +
+    `${(shippedBytes / 1048576).toFixed(1)} MB shipped`
+);
 console.log(`  Permissions: ${(manifest.permissions ?? []).join(', ') || 'none'}`);
 console.log(`  Host permissions: none`);

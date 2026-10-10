@@ -1,34 +1,63 @@
 # Security
 
-## Threat model (Milestone 1)
+## Threat model (Milestone 3)
 
-| Asset                 | Threat                                     | Current mitigation                                                                                                                 |
-| --------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Text the user types   | Rendered as HTML and executes script (XSS) | Rendered only through React, which escapes text. `innerHTML`, `outerHTML`, `insertAdjacentHTML` banned by ESLint. Test WB-SEC-003. |
-| Text the user types   | Leaked through logs                        | `console.log` banned by ESLint. Nothing logs user text.                                                                            |
-| The extension package | Ships a credential                         | `validate:build` scans every bundled file for key patterns and fails the build.                                                    |
-| The extension package | Runs code fetched at runtime               | CSP `script-src 'self'`; `validate:build` rejects remote scripts and imports.                                                      |
-| The user's browsing   | Extension gains broad page access          | No permissions at all; `validate:build` fails on any permission not in its allow-list.                                             |
-| Build toolchain       | Compromised dependency or GitHub Action    | Exact versions and a committed lockfile, `npm ci`, `npm audit` in CI, actions pinned to commit SHAs.                               |
+| Asset                 | Threat                                                        | Current mitigation                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Text on web pages     | Extension reads pages the user never asked it to              | No host permissions, no always-on content scripts. Only `activeTab`: access to one tab, after the user invokes the extension on it. Tests WB-SEC-001, WB-SEC-012.            |
+| Text on web pages     | Extension reads more than the selection                       | The capture function reads only `value.slice(start, end)` of the focused field. Nothing else on the page is touched.                                                         |
+| Passwords and codes   | Extension reads a password, one-time code or card number      | Fields with `type="password"` or `autocomplete` tokens `current-password`, `new-password`, `one-time-code` or `cc-*` are refused before their value is read. WB-SEC-008–011. |
+| The popup             | A hostile page returns crafted data from the capture function | `parseCaptureResult()` validates the shape and copies only known fields. Anything else is rejected. WB-SEC-005, WB-SEC-006.                                                  |
+| Text the user types   | Rendered as HTML and executes script (XSS)                    | Rendered only through React, which escapes text. `innerHTML`, `outerHTML`, `insertAdjacentHTML` banned by ESLint. WB-SEC-003.                                                |
+| Text the user types   | Leaked through logs or messages                               | `console.log` banned by ESLint. No code logs user text; the context-menu handler ignores Chrome's `selectionText`. WB-SEC-007, WB-INT-023.                                   |
+| The extension package | Ships a credential                                            | `validate:build` scans every bundled file for key patterns and fails the build.                                                                                              |
+| Grammar engine        | Sends text over the network                                   | Harper is bundled; its only fetch is its own `.wasm` from the package. An e2e test fails on any request outside the extension (WB-SEC-018).                                  |
+| Grammar engine        | Changes text in harmful ways                                  | Safeguards: no changes to URLs, emails, code, tags, identifiers; no auto-correction of names or of the first word. See grammar-engine.md.                                    |
+| Worker messages       | Malformed message, or an error that echoes text               | Both directions validated in `protocol.ts`; error responses carry no message. WB-SEC-014–016.                                                                                |
+| The extension package | Runs code fetched at runtime                                  | CSP `script-src 'self'`; `validate:build` rejects remote scripts and imports.                                                                                                |
+| The user's browsing   | Permissions quietly grow                                      | `validate:build` fails on any permission outside its allow-list, and on any host permission.                                                                                 |
+| Build toolchain       | Compromised dependency or GitHub Action                       | Exact versions and a committed lockfile, `npm ci`, `npm audit` in CI, actions pinned to commit SHAs.                                                                         |
 
 ## Permissions
 
-**Current: none.** The popup only works with text typed into it.
+| Permission     | Why                                                                                                                           | Install warning? |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `activeTab`    | Temporary access to the current tab, granted only when the user clicks the icon, picks the menu item or presses the shortcut. | No               |
+| `scripting`    | Run the capture function in that tab at that moment, instead of a content script on every page.                               | No               |
+| `contextMenus` | The right-click "Improve with WriteBetter" entry on text fields.                                                              | No               |
 
-**Planned for Milestone 2**, to be confirmed then:
+`storage` was planned for this milestone but is not needed yet, so it is not requested. It will be added when settings exist.
 
-| Permission     | Why                                                                                                       | Install warning? |
-| -------------- | --------------------------------------------------------------------------------------------------------- | ---------------- |
-| `activeTab`    | Temporary access to the _current_ tab, granted only when the user clicks the icon, menu item or shortcut. | No               |
-| `scripting`    | Inject the content script into that tab at that moment, instead of into every page.                       | No               |
-| `contextMenus` | The right-click "WriteBetter" entry.                                                                      | No               |
-| `storage`      | Save settings (not text).                                                                                 | No               |
+### Why not a content script on every page?
 
-The alternative, a content script declared for `<all_urls>`, would run on every page the user visits and show the warning _"Read and change all your data on all websites"_. Combining `activeTab` with on-demand injection gives the same functionality, triggered by the user, with no standing access. The cost: the extension cannot react to a selection until the user invokes it, which fits the product anyway.
+A content script declared for `<all_urls>` would run on every page the user visits and show the install warning _"Read and change all your data on all websites"_. `activeTab` with on-demand injection gives the same capability, only when the user asks, with no standing access. The cost: WriteBetter cannot react to a selection (for example, by showing a floating button) until the user invokes it. That fits a tool that must never act on text without being asked.
+
+### How long access lasts
+
+Chrome grants `activeTab` for one tab and keeps it until that tab **navigates to a different origin** or closes. It survives navigation within the same site (WB-E2E-016) and is revoked by a cross-origin navigation (WB-E2E-014). During that window the extension could technically script the tab again, but it only does so when the popup opens.
+
+### Frames
+
+The capture function runs only in the tab's main frame. `activeTab` doesn't cover cross-origin iframes, so injecting into all frames would fail on most sites anyway. A focused iframe is reported as unsupported.
+
+## Content Security Policy
+
+`script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; frame-ancestors 'none'`
+
+Only scripts in the package can run. `'wasm-unsafe-eval'` is required to compile the grammar engine's WebAssembly; it does not permit JavaScript `eval()` or `new Function()`. `validate:build` rejects `'unsafe-eval'`, `unsafe-inline` and any remote host.
+
+## Dependencies
+
+Runtime dependencies (shipped to users): `react`, `react-dom`, `harper.js` and their dependencies `scheduler` and `fflate`. All are MIT or Apache-2.0; `THIRD_PARTY_NOTICES.txt` in the package carries their licences. Versions are exact and locked. Harper was checked for network use: its code fetches only the WebAssembly URL it is given.
+
+## The `?tab=` popup parameter
+
+The popup reads the active tab of its window. Opened as a page with `?tab=<id>`, it reads that tab instead; the end-to-end tests use this. It grants nothing on its own: Chrome still refuses the read unless the user invoked the extension on that tab (WB-SEC-012). Web pages cannot open the popup URL at all, because it is not listed in `web_accessible_resources`. The value must be a plain run of digits (WB-INT-015).
 
 ## Rules for contributors
 
 - Never add a permission without updating `ALLOWED_PERMISSIONS` in `scripts/validate-build.mjs` and this document.
 - Never put API keys, tokens or provider URLs with credentials in extension code. A remote AI mode must go through a backend that holds the keys.
-- Validate every message received from another extension context.
+- Validate everything received from a page or another extension context before using it.
 - Never log user text, including in error messages.
+- Code injected into pages (`src/content/`) must be self-contained, and must never read more than it needs.
