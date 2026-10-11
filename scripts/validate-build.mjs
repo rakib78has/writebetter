@@ -16,7 +16,7 @@ const dist = join(root, 'dist');
 
 /** Permissions the extension may request. Adding one requires editing this
  *  list *and* justifying it in docs/security.md. */
-const ALLOWED_PERMISSIONS = new Set(['activeTab', 'contextMenus', 'scripting']);
+const ALLOWED_PERMISSIONS = new Set(['activeTab', 'contextMenus', 'scripting', 'storage']);
 
 /** Patterns that look like credentials. The extension must never ship any. */
 const SECRET_PATTERNS = [

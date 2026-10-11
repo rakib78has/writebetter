@@ -1,4 +1,4 @@
-import { GrammarCheckError, type GrammarChecker, type Issue } from '../types.ts';
+import { GrammarCheckError, type CheckOptions, type GrammarChecker, type Issue } from '../types.ts';
 import { parseResponse, type WorkerRequest, type WorkerResponse } from './protocol.ts';
 
 /** The parts of a Worker this module uses, so tests can supply a fake. */
@@ -91,9 +91,9 @@ export function createWorkerGrammarChecker(
     return attempt;
   }
 
-  async function check(text: string): Promise<Issue[]> {
+  async function check(text: string, { dialect }: CheckOptions): Promise<Issue[]> {
     await prepare();
-    const response = await send({ id: nextId++, type: 'check', text }, checkTimeoutMs);
+    const response = await send({ id: nextId++, type: 'check', text, dialect }, checkTimeoutMs);
     if (response.type !== 'result') throw new GrammarCheckError('unavailable');
     return response.issues;
   }

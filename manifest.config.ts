@@ -31,7 +31,8 @@ export function buildManifest(version: string): chrome.runtime.ManifestV3 {
     // 127 is the first version where any extension may call
     // chrome.action.openPopup(), which the context menu relies on.
     minimum_chrome_version: '127',
-    permissions: ['activeTab', 'contextMenus', 'scripting'],
+    // `storage` holds one preference (the English variant), never text.
+    permissions: ['activeTab', 'contextMenus', 'scripting', 'storage'],
     commands: {
       // The reserved `_execute_action` command opens the popup exactly as a
       // click on the icon does, including the activeTab grant.

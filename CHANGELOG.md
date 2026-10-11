@@ -14,14 +14,15 @@ First release: grammar and spelling fixes for text you select on the web, entire
 - **See every change** before anything happens: removed and added words are marked inline, with the reason for each.
 - **Copy** the corrected text, or **replace it on the page** after confirming. Bold text, links and paragraphs are kept, Ctrl+Z undoes it, and an Undo button is offered in plain text boxes.
 - **Works in** ordinary text boxes and rich-text editors: Gmail-style editors and editors built on ProseMirror, Quill and Lexical are tested.
+- **Your English.** American, British, Australian, Canadian or Indian spelling, picked from your browser language and changeable in the popup. The choice is remembered on this device.
 - **Careful with your words.** Names, web and email addresses, code, file names and HTML are never "corrected". Anything WriteBetter isn't sure about is listed for you to decide.
 - **Safe replacing.** Nothing changes on the page without your confirmation, and never if you have edited the text since WriteBetter read it.
-- **Private.** Text never leaves your device; nothing is stored; there is no account. Password, verification-code and payment fields are never read. WriteBetter can read a page only after you invoke it there.
+- **Private.** Text never leaves your device and is never stored (only your English-variant choice is remembered); there is no account. Password, verification-code and payment fields are never read. WriteBetter can read a page only after you invoke it there.
 - Accessible: keyboard operable, labelled for screen readers, and free of automatically detectable WCAG 2.1 A/AA issues in light and dark mode.
 
 ### Known limitations
 
-- English only. The checker is rule-based: it catches common mistakes and misses some (for example "your welcome").
+- English only (five varieties). The checker is rule-based: it catches common mistakes and misses some (for example "your welcome").
 - No tone or style rewriting.
 - Editors inside embedded frames and canvas-based editors such as Google Docs are not supported; copy and paste works there.
 - Selections over about 5,000 characters are not checked.
@@ -29,7 +30,7 @@ First release: grammar and spelling fixes for text you select on the web, entire
 
 ### Engineering
 
-- Manifest V3; permissions `activeTab`, `contextMenus` and `scripting` only; no host permissions; strict CSP (`'wasm-unsafe-eval'` for the grammar engine only).
+- Manifest V3; permissions `activeTab`, `contextMenus`, `scripting` and `storage` (one preference) only; no host permissions; strict CSP (`'wasm-unsafe-eval'` for the grammar engine only).
 - 288 unit, component and integration tests; 42 end-to-end tests in real Chromium, including real ProseMirror, Quill and Lexical editors, accessibility scans, and failure on any extension-page error.
 - Build gates for permissions, CSP, secrets, network calls, package contents and size. The release workflow publishes the zip with checksums and a CycloneDX SBOM. See `docs/security-review.md` and `docs/release-process.md`.
 - Third-party licences ship in `THIRD_PARTY_NOTICES.txt`.

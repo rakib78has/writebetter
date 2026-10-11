@@ -1,10 +1,15 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/popup/App.tsx';
 import type { SelectionOutcome } from '../../src/popup/page-access.ts';
 import { MAX_INPUT_CHARACTERS } from '../../src/shared/constants.ts';
-import { GrammarCheckError, type GrammarChecker, type Issue } from '../../src/writing/types.ts';
+import {
+  GrammarCheckError,
+  type Dialect,
+  type GrammarChecker,
+  type Issue,
+} from '../../src/writing/types.ts';
 
 const NO_FIELD: SelectionOutcome = { status: 'no-field' };
 
@@ -41,11 +46,15 @@ function issueIn(text: string, original: string, replacement: string, autoFix = 
   };
 }
 
-/** Stand-ins for writing to the page and the clipboard. */
-function pageFakes() {
+/** Stand-ins for writing to the page, the clipboard and settings storage. */
+function pageFakes(dialect: Dialect = 'american') {
   return {
     replaceText: vi.fn(() => Promise.resolve({ status: 'replaced' as const })),
     copyText: vi.fn(() => Promise.resolve()),
+    settings: {
+      load: vi.fn(() => Promise.resolve({ dialect })),
+      save: vi.fn(() => Promise.resolve()),
+    },
   };
 }
 
@@ -235,7 +244,7 @@ describe('popup Fix grammar', () => {
     await user.click(fixButton);
     expect(fixButton).toBeDisabled();
     expect(fixButton).toHaveTextContent('Checking…');
-    expect(grammar.check).toHaveBeenCalledWith(TEXT);
+    expect(grammar.check).toHaveBeenCalledWith(TEXT, { dialect: 'american' });
 
     await act(async () => {
       result.resolve([issueIn(TEXT, 'teh', 'the')]);
@@ -391,5 +400,74 @@ describe('popup writing back to the page', () => {
     await screen.findByRole('button', { name: 'Replace on page' });
 
     expect(screen.queryByRole('group', { name: 'Confirm replacement' })).not.toBeInTheDocument();
+  });
+});
+
+describe('popup English variant', () => {
+  const TEXT = 'The colour is nice.';
+
+  async function renderWith(dialect: Dialect, grammar: GrammarChecker = fakeGrammar()) {
+    const fakes = pageFakes(dialect);
+    const user = userEvent.setup();
+    render(
+      <App {...fakes} loadSelection={() => Promise.resolve(captured(TEXT))} grammar={grammar} />
+    );
+    const select = await screen.findByRole('combobox', { name: 'English variant' });
+    await waitFor(() => {
+      expect(select).toBeEnabled();
+    });
+    return { user, select, fakes };
+  }
+
+  // WB-UI-039
+  it('shows the stored variant and checks with it', async () => {
+    const grammar = fakeGrammar();
+    const { user, select } = await renderWith('british', grammar);
+
+    expect(select).toHaveValue('british');
+    await user.click(screen.getByRole('button', { name: 'Fix grammar' }));
+    expect(grammar.check).toHaveBeenCalledWith(TEXT, { dialect: 'british' });
+  });
+
+  // WB-UI-040
+  it('saves a new choice and uses it for the next check', async () => {
+    const grammar = fakeGrammar();
+    const { user, select, fakes } = await renderWith('american', grammar);
+
+    await user.selectOptions(select, 'Canadian');
+
+    expect(fakes.settings.save).toHaveBeenCalledWith({ dialect: 'canadian' });
+    await user.click(screen.getByRole('button', { name: 'Fix grammar' }));
+    expect(grammar.check).toHaveBeenLastCalledWith(TEXT, { dialect: 'canadian' });
+  });
+
+  // WB-UI-041
+  it('clears results when the variant changes, and drops a late result for the old one', async () => {
+    const result = deferred<Issue[]>();
+    const { user, select } = await renderWith(
+      'american',
+      fakeGrammar(() => result.promise)
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Fix grammar' }));
+    await user.selectOptions(select, 'British');
+    await act(async () => {
+      result.resolve([issueIn(TEXT, 'colour', 'color')]);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole('textbox', { name: 'Corrected text' })).not.toBeInTheDocument();
+  });
+
+  // WB-UI-042
+  it('offers every supported variant', async () => {
+    const { select } = await renderWith('american');
+    expect([...(select as HTMLSelectElement).options].map((option) => option.text)).toEqual([
+      'American',
+      'British',
+      'Australian',
+      'Canadian',
+      'Indian',
+    ]);
   });
 });

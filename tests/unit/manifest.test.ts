@@ -12,7 +12,7 @@ describe('buildManifest', () => {
 
   // WB-SEC-001
   it('requests only on-demand permissions and no host access', () => {
-    expect(manifest.permissions).toEqual(['activeTab', 'contextMenus', 'scripting']);
+    expect(manifest.permissions).toEqual(['activeTab', 'contextMenus', 'scripting', 'storage']);
     expect(manifest.host_permissions).toBeUndefined();
     expect(manifest.optional_host_permissions).toBeUndefined();
     // No script runs on any page until the user invokes the extension.

@@ -24,11 +24,27 @@ export interface Issue {
   autoFix: boolean;
 }
 
+/** The variety of English to check against. Spelling differs between them
+ *  ("colour" and "color"), as does some vocabulary. */
+export type Dialect = 'american' | 'british' | 'australian' | 'canadian' | 'indian';
+
+export const DIALECTS: readonly Dialect[] = [
+  'american',
+  'british',
+  'australian',
+  'canadian',
+  'indian',
+];
+
+export interface CheckOptions {
+  dialect: Dialect;
+}
+
 export interface GrammarChecker {
   /** Starts loading the engine in the background. Safe to call repeatedly. */
   prepare(): Promise<void>;
   /** Finds problems in `text`. Rejects with a GrammarCheckError on failure. */
-  check(text: string): Promise<Issue[]>;
+  check(text: string, options: CheckOptions): Promise<Issue[]>;
 }
 
 export type GrammarCheckFailure = 'unavailable' | 'timeout';

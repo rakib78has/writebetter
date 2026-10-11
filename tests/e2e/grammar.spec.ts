@@ -77,3 +77,29 @@ test('checking text makes no network request and logs no errors', async ({
   expect(external).toEqual([]);
   expect(problems).toEqual([]);
 });
+
+// WB-E2E-030
+test('the English variant is remembered and used', async ({ context, extensionId }) => {
+  const url = extensionUrl(extensionId, 'popup/index.html');
+  const first = await context.newPage();
+  await first.goto(url);
+  const variant = first.getByRole('combobox', { name: 'English variant' });
+  await expect(variant).toBeEnabled();
+  await variant.selectOption('british');
+  await first.close();
+
+  // A new popup (as when the user opens WriteBetter again) remembers it…
+  const second = await context.newPage();
+  await second.goto(url);
+  await expect(second.getByRole('combobox', { name: 'English variant' })).toHaveValue('british');
+
+  // …and checks with it: British spelling stays, American is corrected.
+  await second
+    .getByRole('textbox', { name: 'Text to improve' })
+    .fill('The colour of the center was nice.');
+  await second.getByRole('button', { name: 'Fix grammar' }).click();
+  await expect(second.getByRole('textbox', { name: 'Corrected text' })).toHaveValue(
+    'The colour of the centre was nice.',
+    { timeout: ENGINE_TIMEOUT }
+  );
+});

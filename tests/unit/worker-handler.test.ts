@@ -4,6 +4,7 @@ import { createRequestHandler } from '../../src/writing/local/worker-handler.ts'
 function fakeLinter({ setupFails = false, lintFails = false } = {}) {
   return {
     setup: vi.fn(() => (setupFails ? Promise.reject(new Error('wasm')) : Promise.resolve())),
+    setDialect: vi.fn(() => Promise.resolve()),
     lint: vi.fn(() =>
       lintFails ? Promise.reject(new Error('my draft text')) : Promise.resolve([])
     ),
@@ -24,7 +25,12 @@ describe('grammar worker request handler', () => {
   // WB-UNIT-046
   it('answers check with the issues found', async () => {
     await expect(
-      createRequestHandler(fakeLinter())({ id: 2, type: 'check', text: 'fine' })
+      createRequestHandler(fakeLinter())({
+        id: 2,
+        type: 'check',
+        text: 'fine',
+        dialect: 'american',
+      })
     ).resolves.toEqual({ id: 2, type: 'result', issues: [] });
   });
 
@@ -56,5 +62,21 @@ describe('grammar worker request handler', () => {
     await expect(handle(null)).resolves.toBeNull();
     await expect(handle({ type: 'prepare' })).resolves.toBeNull();
     await expect(handle({ id: 'x', type: 'prepare' })).resolves.toBeNull();
+  });
+
+  // WB-UNIT-058
+  it('switches Harper to the requested dialect, only when it changes', async () => {
+    const linter = fakeLinter();
+    const handle = createRequestHandler(linter);
+    const check = (id: number, dialect: string) =>
+      handle({ id, type: 'check', text: 'x', dialect });
+
+    await check(1, 'american');
+    expect(linter.setDialect).not.toHaveBeenCalled(); // Harper starts American
+
+    await check(2, 'british');
+    await check(3, 'british');
+    await check(4, 'canadian');
+    expect(linter.setDialect.mock.calls).toEqual([[1], [3]]);
   });
 });

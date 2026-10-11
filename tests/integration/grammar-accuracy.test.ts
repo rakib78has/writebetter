@@ -22,6 +22,8 @@ const cases = JSON.parse(
   readFileSync(new URL('../fixtures/grammar-cases.json', import.meta.url), 'utf8')
 ) as Cases;
 
+const AMERICAN = { dialect: 'american' } as const;
+
 let checker: GrammarChecker;
 beforeAll(async () => {
   checker = await createNodeGrammarChecker();
@@ -30,7 +32,7 @@ beforeAll(async () => {
 describe('Fix grammar with Harper', () => {
   // WB-INT-024
   it.each(cases.fixed.map((c) => [c.id, c] as const))('corrects %s', async (_id, c) => {
-    const report = await fixGrammar(checker, c.text);
+    const report = await fixGrammar(checker, c.text, AMERICAN);
     expect(report.corrected).toBe(c.corrected);
     expect(report.toReview).toEqual([]);
   });
@@ -39,7 +41,7 @@ describe('Fix grammar with Harper', () => {
   it.each(cases.knownMisses.map((c) => [c.id, c] as const))(
     'still misses %s (known limitation; update the fixture if this starts passing)',
     async (_id, c) => {
-      const report = await fixGrammar(checker, c.text);
+      const report = await fixGrammar(checker, c.text, AMERICAN);
       expect(report.corrected).toBe(c.text);
     }
   );
@@ -48,7 +50,7 @@ describe('Fix grammar with Harper', () => {
   it.each(cases.reviewNotFixed.map((c) => [c.id, c] as const))(
     'leaves %s for the user to review instead of changing it',
     async (_id, c) => {
-      const report = await fixGrammar(checker, c.text);
+      const report = await fixGrammar(checker, c.text, AMERICAN);
       expect(report.corrected).toBe(c.corrected ?? c.text);
       expect(report.toReview.map((issue) => issue.original)).toEqual(c.review);
     }
@@ -58,7 +60,7 @@ describe('Fix grammar with Harper', () => {
   it.each(cases.clean.map((c) => [c.id, c] as const))(
     'reports nothing in clean text: %s',
     async (_id, c) => {
-      const report = await fixGrammar(checker, c.text);
+      const report = await fixGrammar(checker, c.text, AMERICAN);
       expect(report.fixed).toEqual([]);
       expect(report.toReview).toEqual([]);
     }
@@ -72,7 +74,7 @@ describe('Fix grammar with Harper', () => {
       .repeat(20)
       .slice(0, 5000);
     const started = performance.now();
-    const report = await fixGrammar(checker, text);
+    const report = await fixGrammar(checker, text, AMERICAN);
     const elapsed = performance.now() - started;
 
     expect(report.fixed.length).toBeGreaterThan(0);
@@ -85,7 +87,35 @@ describe('Fix grammar with Harper', () => {
   // WB-SEC-013
   it('returns markup in the text as plain text, unchanged', async () => {
     const text = '<img src=x onerror=alert(1)> teh end';
-    const report = await fixGrammar(checker, text);
+    const report = await fixGrammar(checker, text, AMERICAN);
     expect(report.corrected).toBe('<img src=x onerror=alert(1)> the end');
+  });
+
+  // WB-INT-061
+  it.each([
+    [
+      'american',
+      'The colour of the organisation was analysed.',
+      'The color of the organization was analyzed.',
+    ],
+    [
+      'british',
+      'The colour of the organisation was analysed.',
+      'The colour of the organisation was analysed.',
+    ],
+    ['british', 'The color of the center was fine.', 'The colour of the centre was fine.'],
+    [
+      'australian',
+      'The colour of the organisation was analysed.',
+      'The colour of the organisation was analysed.',
+    ],
+    [
+      'canadian',
+      'The colour of the organisation was analysed.',
+      'The colour of the organization was analyzed.',
+    ],
+  ] as const)('respects %s spelling: %s', async (dialect, text, corrected) => {
+    const report = await fixGrammar(checker, text, { dialect });
+    expect(report.corrected).toBe(corrected);
   });
 });

@@ -2,7 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { MAX_INPUT_CHARACTERS } from '../shared/constants.ts';
 import { getTextStats } from '../shared/text-stats.ts';
 import { fixGrammar, type GrammarReport } from '../writing/fix-grammar.ts';
-import { GrammarCheckError, type GrammarChecker } from '../writing/types.ts';
+import { GrammarCheckError, type Dialect, type GrammarChecker } from '../writing/types.ts';
+import type { Settings } from '../settings/settings.ts';
 import type { ReplaceRequest } from '../shared/replace.ts';
 import { GrammarResults } from './components/GrammarResults.tsx';
 import type { ReplaceTarget } from './components/ResultActions.tsx';
@@ -10,6 +11,14 @@ import type { ReplaceOutcome, SelectionOutcome } from './page-access.ts';
 import { describeSelection } from './selection-message.ts';
 
 const numberFormat = new Intl.NumberFormat('en');
+
+const DIALECT_NAMES: Readonly<Record<Dialect, string>> = {
+  american: 'American',
+  british: 'British',
+  australian: 'Australian',
+  canadian: 'Canadian',
+  indian: 'Indian',
+};
 
 const TONE_CLASSES = {
   neutral: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
@@ -33,6 +42,11 @@ export interface AppProps {
   replaceText: (request: ReplaceRequest) => Promise<ReplaceOutcome>;
   /** Puts text on the clipboard. */
   copyText: (text: string) => Promise<void>;
+  /** Reads and saves the user's preferences. */
+  settings: {
+    load: () => Promise<Settings>;
+    save: (settings: Settings) => Promise<void>;
+  };
 }
 
 /** Where a result could be written back, given how the text was obtained. */
@@ -67,8 +81,12 @@ function replaceTargetFor(
   };
 }
 
-export function App({ loadSelection, grammar, replaceText, copyText }: AppProps) {
+export function App({ loadSelection, grammar, replaceText, copyText, settings }: AppProps) {
   const [text, setText] = useState('');
+  // Null until loaded (a few milliseconds), so a check never runs with a
+  // dialect the user didn't choose.
+  const [dialect, setDialect] = useState<Dialect | null>(null);
+  const latestDialect = useRef<Dialect | null>(null);
   const [selection, setSelection] = useState<SelectionOutcome | 'loading'>('loading');
   const [check, setCheck] = useState<CheckState>({ status: 'idle' });
   // The latest text, readable from inside an async callback, so a result for
@@ -78,6 +96,30 @@ export function App({ loadSelection, grammar, replaceText, copyText }: AppProps)
   const stats = getTextStats(text);
   const inputId = useId();
   const statsId = useId();
+  const dialectId = useId();
+
+  useEffect(() => {
+    let active = true;
+    void settings.load().then((loaded) => {
+      if (!active) return;
+      latestDialect.current = loaded.dialect;
+      setDialect(loaded.dialect);
+    });
+    return () => {
+      active = false;
+    };
+  }, [settings]);
+
+  function changeDialect(next: Dialect) {
+    latestDialect.current = next;
+    setDialect(next);
+    // A result checked against the previous variety no longer applies.
+    setCheck({ status: 'idle' });
+    void settings.save({ dialect: next }).catch(() => {
+      // Not saving only means the choice isn't remembered next time; the
+      // current check still uses it, so there is nothing to tell the user.
+    });
+  }
 
   useEffect(() => {
     let active = true;
@@ -106,15 +148,19 @@ export function App({ loadSelection, grammar, replaceText, copyText }: AppProps)
   }
 
   async function runFixGrammar() {
+    if (dialect === null) return;
     const snapshot = text;
+    const checkedDialect = dialect;
+    const isCurrent = () =>
+      latestText.current === snapshot && latestDialect.current === checkedDialect;
     setCheck({ status: 'checking' });
     try {
-      const report = await fixGrammar(grammar, snapshot);
-      if (latestText.current === snapshot) {
+      const report = await fixGrammar(grammar, snapshot, { dialect: checkedDialect });
+      if (isCurrent()) {
         setCheck({ status: 'done', report, run: ++runs.current });
       }
     } catch (error) {
-      if (latestText.current !== snapshot) return;
+      if (!isCurrent()) return;
       const timeout = error instanceof GrammarCheckError && error.reason === 'timeout';
       setCheck({
         status: 'error',
@@ -126,7 +172,8 @@ export function App({ loadSelection, grammar, replaceText, copyText }: AppProps)
   }
 
   const message = describeSelection(selection);
-  const canCheck = text.trim() !== '' && !stats.overLimit && check.status !== 'checking';
+  const canCheck =
+    text.trim() !== '' && !stats.overLimit && check.status !== 'checking' && dialect !== null;
 
   return (
     <main className="flex w-[360px] flex-col gap-3 bg-white p-4 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -171,16 +218,39 @@ export function App({ loadSelection, grammar, replaceText, copyText }: AppProps)
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          void runFixGrammar();
-        }}
-        disabled={!canCheck}
-        className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {check.status === 'checking' ? 'Checking…' : 'Fix grammar'}
-      </button>
+      <div className="flex items-end gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            void runFixGrammar();
+          }}
+          disabled={!canCheck}
+          className="flex-1 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {check.status === 'checking' ? 'Checking…' : 'Fix grammar'}
+        </button>
+        <div className="flex flex-col gap-0.5">
+          <label htmlFor={dialectId} className="text-xs text-slate-600 dark:text-slate-400">
+            English variant
+          </label>
+          <select
+            id={dialectId}
+            value={dialect ?? ''}
+            disabled={dialect === null}
+            onChange={(event) => {
+              changeDialect(event.target.value as Dialect);
+            }}
+            className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:outline-2 focus:outline-offset-1 focus:outline-indigo-600 dark:border-slate-600 dark:bg-slate-800"
+          >
+            {dialect === null && <option value="">Loading…</option>}
+            {Object.entries(DIALECT_NAMES).map(([value, name]) => (
+              <option key={value} value={value}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Announces progress to screen readers; results follow below it. */}
       <div aria-live="polite" className="flex flex-col gap-2">

@@ -46,6 +46,7 @@ src/
       protocol.ts          Validated message types between the two
       harper-issues.ts     The only file that knows Harper's types
   popup/components/       GrammarResults, ChangeView (inline diff), ResultActions (copy/replace/undo)
+  settings/settings.ts     Preferences (English variant) in chrome.storage.local
   shared/                  Logic with no Chrome or DOM dependency
     capture.ts             CaptureResult type and parseCaptureResult() validator
     constants.ts           MAX_INPUT_CHARACTERS
@@ -194,3 +195,7 @@ Measured in Chromium: replacing a whole selection with `insertText` deletes bold
 ### D17. Real editor libraries in the end-to-end tests
 
 Editors like Lexical take over editing with their own model, so a plain `contenteditable` test page proves little about them. ProseMirror, Quill and Lexical are dev dependencies used only to build test pages (`scripts/build-test-editors.mjs`). Testing against real Lexical is what revealed the stale-selection corruption.
+
+### D18. Settings in chrome.storage.local, defaulting from the browser language
+
+The English variant changes which spellings are "corrected", so a hard-coded American default would silently Americanise a British user's writing. The default follows `navigator.languages` instead. `chrome.storage.sync` would roam the choice across devices, but it uploads to the user's Google account; `local` keeps the promise that nothing leaves the device.

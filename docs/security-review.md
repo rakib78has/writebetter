@@ -2,6 +2,8 @@
 
 Date: 2026-10-10. Scope: the extension as built from this branch (popup, service worker, injected page script, grammar worker), its build and release pipeline, and its dependencies. The threat model and standing rules are in [security.md](security.md); this records what was checked, how, and what was found.
 
+> **Addendum (after this review):** the `storage` permission was added to remember one preference, the English variant, in `chrome.storage.local`. No text is stored, and stored values are validated on read (WB-SEC-032). See [security.md](security.md#permissions).
+
 ## Summary
 
 | Area                  | Result                                                                                    |

@@ -26,13 +26,14 @@
 
 ## Permissions
 
-| Permission     | Why                                                                                                                           | Install warning? |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| `activeTab`    | Temporary access to the current tab, granted only when the user clicks the icon, picks the menu item or presses the shortcut. | No               |
-| `scripting`    | Run the capture function in that tab at that moment, instead of a content script on every page.                               | No               |
-| `contextMenus` | The right-click "Improve with WriteBetter" entry on text fields.                                                              | No               |
+| Permission     | Why                                                                                                                                                                                                    | Install warning? |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| `activeTab`    | Temporary access to the current tab, granted only when the user clicks the icon, picks the menu item or presses the shortcut.                                                                          | No               |
+| `scripting`    | Run the capture function in that tab at that moment, instead of a content script on every page.                                                                                                        | No               |
+| `contextMenus` | The right-click "Improve with WriteBetter" entry on text fields.                                                                                                                                       | No               |
+| `storage`      | Remember the English variant the user picked. `chrome.storage.local` only (not `sync`, which would copy it to the user's Google account). Holds one preference, never text; read values are validated. | No               |
 
-`storage` was planned for this milestone but is not needed yet, so it is not requested. It will be added when settings exist.
+Stored settings are validated on every read (`loadSettings`); anything unknown falls back to the default, so a corrupted value can never break the popup.
 
 ### Why not a content script on every page?
 

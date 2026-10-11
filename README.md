@@ -14,6 +14,7 @@ A Chrome extension that fixes grammar and spelling in text you write on the web,
   The selected text appears in the popup.
 
 - **Fix grammar.** Corrects common grammar, spelling and punctuation mistakes using [Harper](https://github.com/automattic/harper), which runs inside the extension. Your text never leaves your device. You see the corrected text and a list of every change.
+- **Your English.** Choose American, British, Australian, Canadian or Indian spelling; the default follows your browser language and the choice is remembered on this device.
 - **See every change.** Removed words are struck through and added words highlighted, so nothing changes without you seeing it.
 - **Works in rich-text editors**: plain `contenteditable` (Gmail-style), ProseMirror, Quill and Lexical are tested. Only the words that change are edited, so bold text, links and paragraphs are kept. See [compatibility](docs/compatibility.md).
 - **Copy, or replace on the page.** Replacing asks you to confirm first, refuses if you have edited the text since, and can be undone with the **Undo** button or Ctrl+Z in the page.

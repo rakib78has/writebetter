@@ -1,4 +1,4 @@
-import type { Issue, IssueCategory } from '../types.ts';
+import type { Dialect, Issue, IssueCategory } from '../types.ts';
 
 /**
  * Converts Harper's lints into WriteBetter Issues.
@@ -30,6 +30,15 @@ export interface HarperLint extends Freeable {
 export interface HarperLinter {
   lint(text: string, options: { language: 'plaintext' }): Promise<HarperLint[]>;
 }
+
+/** Harper's Dialect enum values (harper.js 2.x). */
+export const HARPER_DIALECT: Readonly<Record<Dialect, number>> = {
+  american: 0,
+  british: 1,
+  australian: 2,
+  canadian: 3,
+  indian: 4,
+};
 
 /**
  * Harper's lint kinds that are errors, by WriteBetter category. Kinds not

@@ -19,10 +19,11 @@ describe('parseRequest', () => {
   // WB-UNIT-034
   it('accepts prepare and check requests', () => {
     expect(parseRequest({ id: 1, type: 'prepare' })).toEqual({ id: 1, type: 'prepare' });
-    expect(parseRequest({ id: 2, type: 'check', text: 'hi' })).toEqual({
+    expect(parseRequest({ id: 2, type: 'check', text: 'hi', dialect: 'british' })).toEqual({
       id: 2,
       type: 'check',
       text: 'hi',
+      dialect: 'british',
     });
   });
 
@@ -32,7 +33,9 @@ describe('parseRequest', () => {
     ['no id', { type: 'prepare' }],
     ['a negative id', { id: -1, type: 'prepare' }],
     ['an unknown type', { id: 1, type: 'eval', text: '1+1' }],
-    ['text that is not a string', { id: 1, type: 'check', text: 42 }],
+    ['text that is not a string', { id: 1, type: 'check', text: 42, dialect: 'american' }],
+    ['a missing dialect', { id: 1, type: 'check', text: 'hi' }],
+    ['an unknown dialect', { id: 1, type: 'check', text: 'hi', dialect: 'klingon' }],
     [
       'text over the size limit',
       { id: 1, type: 'check', text: 'a'.repeat(MAX_REQUEST_LENGTH + 1) },

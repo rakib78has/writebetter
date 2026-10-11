@@ -6,6 +6,8 @@ import {
 } from '../../src/writing/local/worker-checker.ts';
 import { GrammarCheckError, type Issue } from '../../src/writing/types.ts';
 
+const AMERICAN = { dialect: 'american' } as const;
+
 const ISSUE: Issue = {
   start: 0,
   end: 3,
@@ -81,8 +83,8 @@ describe('worker grammar checker', () => {
     const checker = checkerWith(healthy);
     expect(FakeWorker.created).toHaveLength(0);
 
-    await expect(checker.check('teh')).resolves.toEqual([ISSUE]);
-    await checker.check('teh');
+    await expect(checker.check('teh', AMERICAN)).resolves.toEqual([ISSUE]);
+    await checker.check('teh', AMERICAN);
 
     expect(FakeWorker.created).toHaveLength(1);
     expect(FakeWorker.created[0]?.received.map((r) => r.type)).toEqual([
@@ -95,7 +97,7 @@ describe('worker grammar checker', () => {
   // WB-INT-030
   it('shares one preparation between overlapping calls', async () => {
     const checker = checkerWith(healthy);
-    await Promise.all([checker.prepare(), checker.prepare(), checker.check('a')]);
+    await Promise.all([checker.prepare(), checker.prepare(), checker.check('a', AMERICAN)]);
     expect(FakeWorker.created[0]?.received.filter((r) => r.type === 'prepare')).toHaveLength(1);
   });
 
@@ -103,13 +105,13 @@ describe('worker grammar checker', () => {
   it('rejects with "unavailable" when the worker fails to load, then recovers', async () => {
     const checker = checkerWith(() => 'crash', healthy);
 
-    const failure = await checker.check('teh').catch((error: unknown) => error);
+    const failure = await checker.check('teh', AMERICAN).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(GrammarCheckError);
     expect((failure as GrammarCheckError).reason).toBe('unavailable');
     expect(FakeWorker.created[0]?.terminated).toBe(true);
 
     // The next attempt starts a fresh worker instead of staying broken.
-    await expect(checker.check('teh')).resolves.toEqual([ISSUE]);
+    await expect(checker.check('teh', AMERICAN)).resolves.toEqual([ISSUE]);
     expect(FakeWorker.created).toHaveLength(2);
   });
 
@@ -120,7 +122,7 @@ describe('worker grammar checker', () => {
         ? { id: request.id, type: 'ready' }
         : { id: request.id, type: 'error' }
     );
-    await expect(checker.check('teh')).rejects.toMatchObject({ reason: 'unavailable' });
+    await expect(checker.check('teh', AMERICAN)).rejects.toMatchObject({ reason: 'unavailable' });
   });
 
   // WB-INT-033
@@ -131,14 +133,14 @@ describe('worker grammar checker', () => {
       healthy
     );
 
-    const pending = checker.check('teh').catch((error: unknown) => error);
+    const pending = checker.check('teh', AMERICAN).catch((error: unknown) => error);
     await vi.advanceTimersByTimeAsync(500);
 
     expect(await pending).toMatchObject({ reason: 'timeout' });
     expect(FakeWorker.created[0]?.terminated).toBe(true);
 
     vi.useRealTimers();
-    await expect(checker.check('teh')).resolves.toEqual([ISSUE]);
+    await expect(checker.check('teh', AMERICAN)).resolves.toEqual([ISSUE]);
   });
 
   // WB-INT-034
@@ -162,13 +164,15 @@ describe('worker grammar checker', () => {
     worker?.sendRaw({ id: 999, type: 'ready' });
     worker?.sendRaw({ id: 1, type: 'result', issues: [{ bogus: true }] });
 
-    await expect(checker.check('teh')).resolves.toEqual([ISSUE]);
+    await expect(checker.check('teh', AMERICAN)).resolves.toEqual([ISSUE]);
   });
 
   // WB-SEC-016
   it('never puts the checked text in an error message', async () => {
     const checker = checkerWith(() => 'crash');
-    const failure = await checker.check('my confidential draft').catch((error: unknown) => error);
+    const failure = await checker
+      .check('my confidential draft', AMERICAN)
+      .catch((error: unknown) => error);
     expect((failure as Error).message).not.toContain('confidential');
   });
 });

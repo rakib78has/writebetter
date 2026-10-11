@@ -22,7 +22,7 @@ Fix grammar and spelling in text boxes and editors, privately, on your device.
 > PRIVATE BY DESIGN
 > • Grammar checking runs entirely on your device. Your text is never sent to a server, and there is no account.
 > • WriteBetter reads only the text you selected, and only when you ask. It never reads password, verification-code or payment fields.
-> • Nothing is stored. Close the popup and your text is gone.
+> • Your text is never stored. Close the popup and it is gone. The only thing remembered is your choice of English variant.
 >
 > CAREFUL WITH YOUR WORDS
 > • Names, web addresses, email addresses, code and file names are never "corrected".
@@ -33,7 +33,7 @@ Fix grammar and spelling in text boxes and editors, privately, on your device.
 > Ordinary text boxes and rich-text editors, including Gmail-style editors and editors built on ProseMirror, Quill and Lexical.
 >
 > GOOD TO KNOW
-> • English only.
+> • English only: American, British, Australian, Canadian or Indian spelling, picked from your browser language and changeable in the popup.
 > • Grammar checking is rule-based (powered by the open-source Harper engine). It catches common mistakes but can miss some, so give the result a read.
 > • Editors inside embedded frames and Google Docs are not supported; copy and paste works there.
 
@@ -58,6 +58,7 @@ WriteBetter corrects grammar and spelling in text the user selects on a web page
 | `activeTab`    | To read the text the user has selected on the current tab, only after the user clicks the toolbar icon, chooses the context-menu entry or presses the shortcut.       |
 | `scripting`    | To run WriteBetter's selection reader in that tab at that moment, and to write the corrected text back after the user confirms. No script runs on any page otherwise. |
 | `contextMenus` | To offer "Improve with WriteBetter" in the right-click menu of text fields.                                                                                           |
+| `storage`      | To remember the user's chosen English variant (American, British, Australian, Canadian or Indian) on this device. No text is stored.                                  |
 
 **Host permissions:** none.
 

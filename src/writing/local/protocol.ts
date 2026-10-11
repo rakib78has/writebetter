@@ -1,5 +1,5 @@
 import { MAX_INPUT_CHARACTERS } from '../../shared/constants.ts';
-import type { Issue, IssueCategory } from '../types.ts';
+import { DIALECTS, type Dialect, type Issue, type IssueCategory } from '../types.ts';
 
 /**
  * Messages between the popup and the grammar worker.
@@ -10,7 +10,7 @@ import type { Issue, IssueCategory } from '../types.ts';
  */
 
 export type WorkerRequest =
-  { id: number; type: 'prepare' } | { id: number; type: 'check'; text: string };
+  { id: number; type: 'prepare' } | { id: number; type: 'check'; text: string; dialect: Dialect };
 
 export type WorkerResponse =
   | { id: number; type: 'ready' }
@@ -43,9 +43,11 @@ export function parseRequest(value: unknown): WorkerRequest | null {
   if (
     value.type === 'check' &&
     typeof value.text === 'string' &&
-    value.text.length <= MAX_REQUEST_LENGTH
+    value.text.length <= MAX_REQUEST_LENGTH &&
+    typeof value.dialect === 'string' &&
+    (DIALECTS as readonly string[]).includes(value.dialect)
   ) {
-    return { id: value.id, type: 'check', text: value.text };
+    return { id: value.id, type: 'check', text: value.text, dialect: value.dialect as Dialect };
   }
   return null;
 }

@@ -1,8 +1,18 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { createBinaryModuleFromUrl, LocalLinter } from 'harper.js';
+import { createBinaryModuleFromUrl, Dialect as HarperDialect, LocalLinter } from 'harper.js';
 import { checkWithHarper } from '../../src/writing/local/harper-issues.ts';
-import type { GrammarChecker } from '../../src/writing/types.ts';
+import type { Dialect, GrammarChecker } from '../../src/writing/types.ts';
+
+// Harper's own enum values. The production mapping (HARPER_DIALECT, used by
+// the worker) is checked against these in harper-dialect.test.ts.
+const DIALECT: Record<Dialect, HarperDialect> = {
+  american: HarperDialect.American,
+  british: HarperDialect.British,
+  australian: HarperDialect.Australian,
+  canadian: HarperDialect.Canadian,
+  indian: HarperDialect.Indian,
+};
 
 /**
  * The real Harper engine, running in Node, behind the same GrammarChecker
@@ -25,6 +35,9 @@ export async function createNodeGrammarChecker(): Promise<GrammarChecker> {
   await linter.setup();
   return {
     prepare: () => Promise.resolve(),
-    check: (text) => checkWithHarper(linter, text),
+    check: async (text, { dialect }) => {
+      await linter.setDialect(DIALECT[dialect]);
+      return checkWithHarper(linter, text);
+    },
   };
 }

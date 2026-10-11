@@ -51,7 +51,7 @@ Anything held back by these rules is listed under "possible problems to check yo
 
 ## Limitations
 
-- **English only.** Harper supports American (the default), British, Australian, Canadian and Indian English. A dialect setting is not exposed yet.
+- **English only.** American, British, Australian, Canadian and Indian English are supported. The popup picks one from the browser's language (en-GB → British, and so on; American otherwise) and the user can change it. Spelling follows the choice: in American English "colour" is corrected to "color"; in British English the reverse.
 - **Rule-based.** It catches common mechanical errors well and misses some others (see above). It does not rephrase or change tone; those are the job of the planned rewrite actions.
 - **Fragments.** When a selection starts mid-sentence with a word Harper wants to capitalise, Harper's own de-duplication can drop a second fix on that word ("their is…" is left for review rather than corrected to "there is…").
 - **Size.** 16 MB on disk is large for an extension, though well within Chrome Web Store limits.
