@@ -103,3 +103,30 @@ test('the English variant is remembered and used', async ({ context, extensionId
     { timeout: ENGINE_TIMEOUT }
   );
 });
+
+// WB-E2E-031
+test('Polish style: pick a suggestion and put it on the page', async ({
+  openFixture,
+  invokeExtensionOn,
+}) => {
+  const page = await openFixture('editors.html');
+  const draft = page.locator('#draft');
+  await draft.evaluate((field) => {
+    const textarea = field as HTMLTextAreaElement;
+    textarea.value = 'It is a very unique design, so reply ASAP.';
+    textarea.focus();
+    textarea.select();
+  });
+  const popup = await invokeExtensionOn(page);
+
+  await popup.getByRole('button', { name: 'Polish style' }).click();
+  const asap = popup.getByRole('checkbox', { name: /^ASAP →/ });
+  await expect(asap).toBeVisible({ timeout: ENGINE_TIMEOUT });
+  await expect(popup.getByRole('checkbox', { name: /^very unique →/ })).toBeVisible();
+
+  await asap.check();
+  await popup.getByRole('button', { name: 'Replace on page' }).click();
+  await popup.getByRole('button', { name: 'Yes, replace' }).click();
+
+  await expect(draft).toHaveValue('It is a very unique design, so reply As soon as possible.');
+});

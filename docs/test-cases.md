@@ -2,7 +2,7 @@
 
 Status records the most recent execution. A test is marked **Pass** only after it has actually run.
 
-Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 322 Vitest tests and 43 Playwright tests passed. CI passed for Milestones 1–3 (PRs #1 and #2).
+Last run: 2026-10-10, local (Windows 11, Node 24.20.0, Playwright Chromium 1.64): 341 Vitest tests and 45 Playwright tests passed. CI passed for Milestones 1–3 (PRs #1 and #2).
 
 Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run build` and the Playwright Chromium install.
 
@@ -69,6 +69,8 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-UNIT-057 | settings          | Saving                                         | extra field                                               | Only `{ settings: { dialect } }` stored                 | Pass   | Yes       |
 | WB-UNIT-058 | worker-handler    | Dialect switching                              | american, british ×2, canadian                            | setDialect called twice                                 | Pass   | Yes       |
 | WB-UNIT-059 | harper-issues     | Dialect mapping                                | harper.js Dialect enum                                    | HARPER_DIALECT matches it exactly                       | Pass   | Yes       |
+| WB-UNIT-060 | harper-issues     | Style by rule, kind prefix or advice message   | VeryUnique, AsSoonAsPossible, Expand*, "consider", "Try"  | category style, never auto-fixed                        | Pass   | Yes       |
+| WB-UNIT-061 | harper-issues     | Lints from several rules                       | two rules                                                 | Issues in position order                                | Pass   | Yes       |
 
 ## UI (component)
 
@@ -116,6 +118,13 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-UI-040 | popup          | Changing the variant                          | Choose Canadian                             | Saved; next check uses canadian                                     | Pass   | Yes       |
 | WB-UI-041 | popup          | Variant changed mid-check                     | Change during check                         | Late result dropped                                                 | Pass   | Yes       |
 | WB-UI-042 | popup          | Variants offered                              | Render                                      | American, British, Australian, Canadian, Indian                     | Pass   | Yes       |
+| WB-UI-043 | style results  | Suggestions listed                            | Render 2 suggestions                        | Unticked checkboxes; messages; no corrected text yet                | Pass   | Yes       |
+| WB-UI-044 | style results  | Tick and untick                               | Tick ASAP, untick                           | Corrected text and change view appear, then go                      | Pass   | Yes       |
+| WB-UI-045 | style results  | Replace picked changes                        | Tick one, replace, confirm                  | Rich request with exactly that fix                                  | Pass   | Yes       |
+| WB-UI-046 | style results  | Picks change mid-confirm                      | Tick another                                | Confirmation reset                                                  | Pass   | Yes       |
+| WB-UI-047 | style results  | Nothing found                                 | Empty report                                | Honest "rule-based, only some patterns" message                     | Pass   | Yes       |
+| WB-UI-048 | popup          | Separation of actions                         | Style + error issues                        | Polish style shows only style; Fix grammar fixes only the error     | Pass   | Yes       |
+| WB-UI-049 | popup          | Polish style uses the variant                 | Click Polish style                          | check gets the dialect                                              | Pass   | Yes       |
 
 ## Integration
 
@@ -182,6 +191,8 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-INT-059 | capture (jsdom)       | Selection exactly at the read limit (40,000 units) | Captured                                                                                                              | Pass   | Yes       |
 | WB-INT-060 | rich (jsdom)          | Oversized editor selection                         | too-long                                                                                                              | Pass   | Yes       |
 | WB-INT-061 | grammar (real Harper) | Spelling by variant                                | American corrects colour/organisation; British keeps them and corrects color/center; Canadian corrects only -ise/-yse | Pass   | Yes       |
+| WB-INT-062 | grammar (real Harper) | Style fixtures                                     | Fix grammar leaves "very unique", "ASAP", double space unchanged; Polish style offers each, none auto-fixed           | Pass   | Yes       |
+| WB-INT-063 | grammar (real Harper) | Applying picks                                     | Only the picked suggestion is applied                                                                                 | Pass   | Yes       |
 
 ## End-to-end
 
@@ -216,13 +227,15 @@ Preconditions for all automated cases: `npm ci`. E2E cases also need `npm run bu
 | WB-E2E-028 | Tab moved to another site                                                        | Fix, navigate cross-origin, replace                       | "can no longer reach that page"; new page untouched                          | Pass   | Yes       |
 | WB-E2E-029 | Embedded frame                                                                   | Focus textarea in an iframe, invoke                       | Frame fallback message; pasted text still fixable                            | Pass   | Yes       |
 | WB-E2E-030 | Variant remembered and used                                                      | Choose British, reopen popup, fix "colour … center"       | British still selected; "colour … centre"                                    | Pass   | Yes       |
+| WB-E2E-031 | Polish style on a page                                                           | Select, Polish style, tick ASAP, replace, confirm         | Only ASAP expanded on the page                                               | Pass   | Yes       |
 
 ## Accessibility
 
-| ID          | Scenario                                    | Expected                                                                                      | Status      | Automated |
-| ----------- | ------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------- | --------- |
-| WB-A11Y-001 | axe-core WCAG 2.1 A/AA scan, light and dark | No violations in 6 popup states: no access, over limit, loaded, results, confirming, replaced | Pass        | Yes       |
-| WB-A11Y-002 | Screen reader pass (NVDA or VoiceOver)      | Every control named; status and results announced                                             | **Not run** | No        |
+| ID          | Scenario                                      | Expected                                                                                      | Status      | Automated |
+| ----------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------- | --------- |
+| WB-A11Y-001 | axe-core WCAG 2.1 A/AA scan, light and dark   | No violations in 6 popup states: no access, over limit, loaded, results, confirming, replaced | Pass        | Yes       |
+| WB-A11Y-003 | axe-core scan of Polish style, light and dark | No violations with suggestions listed and one picked                                          | Pass        | Yes       |
+| WB-A11Y-002 | Screen reader pass (NVDA or VoiceOver)        | Every control named; status and results announced                                             | **Not run** | No        |
 
 ## Manual (real Google Chrome)
 
@@ -277,6 +290,7 @@ These need a person, because they involve Chrome's own UI or branded Chrome.
 | WB-SEC-030 | Build gate rejects network calls and unknown URLs    | Planted fetch to an unknown host fails validate:build on both rules                                                                                 | Pass (manual, once) | No        |
 | WB-SEC-031 | Package verification rejects a mismatched zip        | A file in dist/ but not in the zip fails verify:package                                                                                             | Pass (manual, once) | No        |
 | WB-SEC-032 | Stored settings validated                            | Unknown or malformed stored values fall back to the default                                                                                         | Pass                | Yes       |
+| WB-SEC-033 | Disabled rules dropped                               | `Everyone` lint on "every one of" produces no issue                                                                                                 | Pass                | Yes       |
 
 ## Requirements traceability
 

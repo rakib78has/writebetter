@@ -45,14 +45,19 @@ Harper's raw output is filtered by `src/writing/safeguards.ts` before anything i
 1. **Non-prose is left alone.** Issues touching URLs, emails, @mentions, #tags, `code`, HTML tags, file names or identifiers are dropped. Without this, Harper turned `<img src=x>` into `<i mg sac=x>`.
 2. **Names are never "corrected" automatically.** A spelling fix to a capitalised word is shown for review instead. Without this, "Rakib" became "Rabbi" and "Siobhan" became "Sideman".
 3. **The first word is never capitalised automatically**, because selected text is often a fragment of a sentence. The lowercase pronoun "i" is the exception.
-4. **Only errors are reported.** Harper's style and readability suggestions are matters of taste and are not shown by "Fix grammar".
+4. **Mistakes and matters of taste are kept apart.** Each suggestion is classified by the Harper _rule_ that made it (`organizedLints`), not just its broad kind, because a kind like `WordChoice` mixes real errors ("could of" → "could have") with advice ("very unique" → "very special"). Style suggestions go to **Polish style** and are never applied automatically. A suggestion counts as style if its rule is listed in `STYLE_RULES`, its kind is a style kind (Style, Readability, Redundancy, Formatting and so on), its rule name starts with `Expand` (initialisms), or its message reads as advice ("consider…", "try…").
+5. **Rules that break correct English are switched off** (`DISABLED_RULES`). `Everyone` turned the correct "every one of the participants" into "everyone of".
 
 Anything held back by these rules is listed under "possible problems to check yourself", so nothing is hidden.
+
+## Polish style
+
+Harper enables 873 of its 885 rules by default. Its style rules are narrow: on a sample of typically wordy sentences ("in order to", "due to the fact that", "at this point in time", "utilize"), none fired. Turning on the 12 rules that are off by default crashed the engine (one needs a thesaurus the slim build doesn't include). So Polish style offers what Harper reliably reports (absolute adjectives, initialisms, double spaces and similar) and says plainly when it has nothing. It is not a rewriting tool.
 
 ## Limitations
 
 - **English only.** American, British, Australian, Canadian and Indian English are supported. The popup picks one from the browser's language (en-GB → British, and so on; American otherwise) and the user can change it. Spelling follows the choice: in American English "colour" is corrected to "color"; in British English the reverse.
-- **Rule-based.** It catches common mechanical errors well and misses some others (see above). It does not rephrase or change tone; those are the job of the planned rewrite actions.
+- **Rule-based.** It catches common mechanical errors well and misses some others (see above). Polish style finds only a few kinds of style issue. Nothing here rephrases or changes tone.
 - **Fragments.** When a selection starts mid-sentence with a word Harper wants to capitalise, Harper's own de-duplication can drop a second fix on that word ("their is…" is left for review rather than corrected to "there is…").
 - **Size.** 16 MB on disk is large for an extension, though well within Chrome Web Store limits.
 

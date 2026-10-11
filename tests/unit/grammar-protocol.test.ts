@@ -74,7 +74,7 @@ describe('parseResponse', () => {
   // WB-SEC-015
   it.each([
     ['issues that are not an array', { id: 1, type: 'result', issues: 'none' }],
-    ['an unknown category', { id: 1, type: 'result', issues: [{ ...issue, category: 'style' }] }],
+    ['an unknown category', { id: 1, type: 'result', issues: [{ ...issue, category: 'opinion' }] }],
     [
       'an end before its start',
       { id: 1, type: 'result', issues: [{ ...issue, start: 3, end: 0 }] },

@@ -5,8 +5,8 @@ function fakeLinter({ setupFails = false, lintFails = false } = {}) {
   return {
     setup: vi.fn(() => (setupFails ? Promise.reject(new Error('wasm')) : Promise.resolve())),
     setDialect: vi.fn(() => Promise.resolve()),
-    lint: vi.fn(() =>
-      lintFails ? Promise.reject(new Error('my draft text')) : Promise.resolve([])
+    organizedLints: vi.fn(() =>
+      lintFails ? Promise.reject(new Error('my draft text')) : Promise.resolve({})
     ),
   };
 }

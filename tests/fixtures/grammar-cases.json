@@ -140,6 +140,27 @@
     {
       "id": "mentions-tags-code-paths",
       "text": "Ping @rakib78has about #release, and check `npm ci` output in src/popup."
+    },
+    {
+      "id": "every-one-of",
+      "text": "Each and every one of the participants was thanked."
+    }
+  ],
+  "style": [
+    {
+      "id": "absolute-adjective",
+      "text": "It is a very unique design.",
+      "suggestions": ["very unique"]
+    },
+    {
+      "id": "initialism",
+      "text": "Please reply ASAP.",
+      "suggestions": ["ASAP"]
+    },
+    {
+      "id": "double-space",
+      "text": "See you at the  meeting.",
+      "suggestions": ["  "]
     }
   ]
 }

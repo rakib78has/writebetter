@@ -28,7 +28,11 @@ export interface HarperLint extends Freeable {
   suggestions(): HarperSuggestion[];
 }
 export interface HarperLinter {
-  lint(text: string, options: { language: 'plaintext' }): Promise<HarperLint[]>;
+  /** Lints grouped by the name of the Harper rule that produced them. */
+  organizedLints(
+    text: string,
+    options: { language: 'plaintext' }
+  ): Promise<Record<string, HarperLint[]>>;
 }
 
 /** Harper's Dialect enum values (harper.js 2.x). */
@@ -41,11 +45,42 @@ export const HARPER_DIALECT: Readonly<Record<Dialect, number>> = {
 };
 
 /**
- * Harper's lint kinds that are errors, by WriteBetter category. Kinds not
- * listed (Style, Readability, Enhancement, Redundancy, Regionalism,
- * Nonstandard, Formatting, WordOrder) are matters of taste, not mistakes,
- * and are not reported by "Fix grammar".
+ * Harper rules whose output is dropped entirely, because tests showed them
+ * changing correct English. Each needs a regression case in
+ * tests/fixtures/grammar-cases.json.
  */
+const DISABLED_RULES: ReadonlySet<string> = new Set([
+  // Turns the correct "every one of the participants" into "everyone of".
+  'Everyone',
+]);
+
+/**
+ * Harper rules that offer a matter of taste, not a fix for a mistake. They
+ * go to "Polish style" as suggestions and are never applied automatically.
+ * Rules whose message reads as advice ("consider…", "try…") are treated
+ * the same way, so a new rule like these is caught without being listed.
+ */
+const STYLE_RULES: ReadonlySet<string> = new Set([
+  // "very unique" → "very special": changes the meaning.
+  'VeryUnique',
+  // "ASAP" → "As soon as possible": both are correct.
+  'AsSoonAsPossible',
+]);
+const ADVICE = /\bconsider\b|^try\b/i;
+
+/** Harper's lint kinds for matters of style rather than mistakes. */
+const STYLE_KINDS: ReadonlySet<string> = new Set([
+  'Enhancement',
+  'Formatting',
+  'Nonstandard',
+  'Readability',
+  'Redundancy',
+  'Regionalism',
+  'Style',
+  'WordOrder',
+]);
+
+/** Harper's lint kinds for mistakes, by WriteBetter category. */
 const CATEGORY_BY_KIND: Readonly<Record<string, IssueCategory>> = {
   Spelling: 'spelling',
   Typo: 'spelling',
@@ -79,15 +114,25 @@ function replacementFor(suggestion: HarperSuggestion, original: string): string 
   }
 }
 
-function toIssue(lint: HarperLint, text: string): Issue | null {
-  const category = CATEGORY_BY_KIND[lint.lint_kind()];
+/** Which WriteBetter category a lint belongs to, or null to drop it. */
+function categorise(rule: string, kind: string, message: string): IssueCategory | null {
+  if (DISABLED_RULES.has(rule)) return null;
+  if (STYLE_RULES.has(rule) || STYLE_KINDS.has(kind) || rule.startsWith('Expand')) return 'style';
+  if (ADVICE.test(message)) return 'style';
+  return CATEGORY_BY_KIND[kind] ?? null;
+}
+
+function toIssue(lint: HarperLint, text: string, rule: string): Issue | null {
+  const message = lint.message();
+  const category = categorise(rule, lint.lint_kind(), message);
+  if (!category) return null;
   const span = lint.span();
   const { start, end } = span;
   span.free();
   // harper.js reports UTF-16 offsets. Checking that they select the text it
   // says they do catches any change to that in a future version.
   const original = text.slice(start, end);
-  if (!category || original !== lint.get_problem_text()) return null;
+  if (original !== lint.get_problem_text()) return null;
 
   const suggestions = lint.suggestions();
   const replacements = [
@@ -102,18 +147,27 @@ function toIssue(lint: HarperLint, text: string): Issue | null {
     end,
     original,
     category,
-    message: lint.message(),
+    message,
     replacements,
-    autoFix: replacements.length > 0,
+    // Style suggestions are only ever applied when the user picks them.
+    autoFix: category !== 'style' && replacements.length > 0,
   };
 }
 
-/** Lints `text` as plain text (not Markdown) and returns its issues. */
+/** Lints `text` as plain text (not Markdown) and returns its issues, in
+ *  order of position. */
 export async function checkWithHarper(linter: HarperLinter, text: string): Promise<Issue[]> {
-  const lints = await linter.lint(text, { language: 'plaintext' });
+  const byRule = await linter.organizedLints(text, { language: 'plaintext' });
+  const issues: Issue[] = [];
   try {
-    return lints.map((lint) => toIssue(lint, text)).filter((issue) => issue !== null);
+    for (const [rule, lints] of Object.entries(byRule)) {
+      for (const lint of lints) {
+        const issue = toIssue(lint, text, rule);
+        if (issue) issues.push(issue);
+      }
+    }
   } finally {
-    for (const lint of lints) lint.free();
+    for (const lints of Object.values(byRule)) for (const lint of lints) lint.free();
   }
+  return issues.sort((a, b) => a.start - b.start || a.end - b.end);
 }

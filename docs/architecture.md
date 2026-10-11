@@ -37,6 +37,7 @@ src/
   writing/                The writing engine. Knows nothing about Chrome or the UI
     types.ts               Issue, GrammarChecker, GrammarCheckError
     fix-grammar.ts         The "Fix grammar" action: check → safeguards → apply
+    polish-style.ts        The "Polish style" action: style suggestions, applied as picked
     safeguards.ts          Never touch URLs/code/names; no auto-capitalised fragments
     apply-fixes.ts         Applies the safe fixes to produce the corrected text
     local/                 Harper, the on-device engine
@@ -45,7 +46,7 @@ src/
       worker-checker.ts    Popup side: GrammarChecker over postMessage, timeouts
       protocol.ts          Validated message types between the two
       harper-issues.ts     The only file that knows Harper's types
-  popup/components/       GrammarResults, ChangeView (inline diff), ResultActions (copy/replace/undo)
+  popup/components/       GrammarResults, StyleResults, ChangeView (inline diff), ResultActions (copy/replace/undo)
   settings/settings.ts     Preferences (English variant) in chrome.storage.local
   shared/                  Logic with no Chrome or DOM dependency
     capture.ts             CaptureResult type and parseCaptureResult() validator
@@ -199,3 +200,7 @@ Editors like Lexical take over editing with their own model, so a plain `content
 ### D18. Settings in chrome.storage.local, defaulting from the browser language
 
 The English variant changes which spellings are "corrected", so a hard-coded American default would silently Americanise a British user's writing. The default follows `navigator.languages` instead. `chrome.storage.sync` would roam the choice across devices, but it uploads to the user's Google account; `local` keeps the promise that nothing leaves the device.
+
+### D19. Suggestions classified by Harper rule
+
+Harper's lint _kind_ is too coarse to decide what may be changed automatically: `WordChoice` covers both "could of" (a mistake) and "very unique" (advice). `checkWithHarper` reads lints grouped by rule (`organizedLints`) and sends advice to a separate `style` category that only Polish style shows, and only applies when picked. Rules found to break correct English are dropped (`DISABLED_RULES`), each with a regression fixture.

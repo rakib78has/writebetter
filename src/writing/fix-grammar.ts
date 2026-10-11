@@ -16,14 +16,17 @@ export interface GrammarReport {
 
 /**
  * The "Fix grammar" action: check, apply WriteBetter's safeguards, then
- * apply the fixes that are safe to make automatically.
+ * apply the fixes that are safe to make automatically. Style suggestions
+ * are not mistakes and are left to "Polish style".
  */
 export async function fixGrammar(
   checker: GrammarChecker,
   text: string,
   options: CheckOptions
 ): Promise<GrammarReport> {
-  const issues = applySafeguards(text, await checker.check(text, options));
+  const issues = applySafeguards(text, await checker.check(text, options)).filter(
+    (issue) => issue.category !== 'style'
+  );
   const { text: corrected, applied, unresolved } = applyFixes(text, issues);
   return { original: text, corrected, fixed: applied, toReview: unresolved };
 }

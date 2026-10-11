@@ -471,3 +471,39 @@ describe('popup English variant', () => {
     ]);
   });
 });
+
+describe('popup Polish style', () => {
+  const TEXT = 'It is very unique, and teh plan.';
+  const STYLE: Issue = {
+    ...issueIn(TEXT, 'very unique', 'unique'),
+    category: 'style',
+    autoFix: false,
+  };
+  const ERROR = issueIn(TEXT, 'teh', 'the');
+
+  // WB-UI-048
+  it('shows only style suggestions, while Fix grammar shows only mistakes', async () => {
+    const grammar = fakeGrammar(() => Promise.resolve([STYLE, ERROR]));
+    const { user } = await renderPopup(captured(TEXT), grammar);
+
+    await user.click(screen.getByRole('button', { name: 'Polish style' }));
+    expect(await screen.findByRole('heading', { name: '1 style suggestion' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'very unique → unique' })).toBeInTheDocument();
+    expect(screen.queryByText('teh')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Fix grammar' }));
+    expect(await screen.findByRole('heading', { name: 'Fixed 1 problem' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Corrected text' })).toHaveValue(
+      'It is very unique, and the plan.'
+    );
+  });
+
+  // WB-UI-049
+  it('checks with the chosen English variant too', async () => {
+    const grammar = fakeGrammar();
+    const { user } = await renderPopup(captured(TEXT), grammar);
+    await user.click(screen.getByRole('button', { name: 'Polish style' }));
+    await screen.findByText(/No style suggestions/);
+    expect(grammar.check).toHaveBeenCalledWith(TEXT, { dialect: 'american' });
+  });
+});

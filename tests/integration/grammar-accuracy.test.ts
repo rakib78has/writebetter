@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { fixGrammar } from '../../src/writing/fix-grammar.ts';
+import { applySuggestions, polishStyle } from '../../src/writing/polish-style.ts';
 import type { GrammarChecker } from '../../src/writing/types.ts';
 import { createNodeGrammarChecker } from '../helpers/harper-node.ts';
 
@@ -16,6 +17,7 @@ interface Cases {
   knownMisses: { id: string; text: string }[];
   reviewNotFixed: { id: string; text: string; review: string[]; corrected?: string }[];
   clean: { id: string; text: string }[];
+  style: { id: string; text: string; suggestions: string[] }[];
 }
 
 const cases = JSON.parse(
@@ -117,5 +119,31 @@ describe('Fix grammar with Harper', () => {
   ] as const)('respects %s spelling: %s', async (dialect, text, corrected) => {
     const report = await fixGrammar(checker, text, { dialect });
     expect(report.corrected).toBe(corrected);
+  });
+
+  // WB-INT-062
+  it.each(cases.style.map((c) => [c.id, c] as const))(
+    'leaves style alone in Fix grammar and offers it in Polish style: %s',
+    async (_id, c) => {
+      const fixed = await fixGrammar(checker, c.text, AMERICAN);
+      expect(fixed.corrected).toBe(c.text);
+      expect(fixed.toReview).toEqual([]);
+
+      const style = await polishStyle(checker, c.text, AMERICAN);
+      expect(style.suggestions.map((issue) => issue.original)).toEqual(c.suggestions);
+      expect(style.suggestions.every((issue) => !issue.autoFix)).toBe(true);
+    }
+  );
+
+  // WB-INT-063
+  it('applies only the style suggestions the user picks', async () => {
+    const text = 'It is a very unique design, so reply ASAP.';
+    const report = await polishStyle(checker, text, AMERICAN);
+    const asap = report.suggestions.filter((issue) => issue.original === 'ASAP');
+
+    expect(applySuggestions(report, []).corrected).toBe(text);
+    expect(applySuggestions(report, asap).corrected).toBe(
+      'It is a very unique design, so reply As soon as possible.'
+    );
   });
 });

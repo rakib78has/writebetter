@@ -2,10 +2,17 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { MAX_INPUT_CHARACTERS } from '../shared/constants.ts';
 import { getTextStats } from '../shared/text-stats.ts';
 import { fixGrammar, type GrammarReport } from '../writing/fix-grammar.ts';
-import { GrammarCheckError, type Dialect, type GrammarChecker } from '../writing/types.ts';
+import { polishStyle, type StyleReport } from '../writing/polish-style.ts';
+import {
+  GrammarCheckError,
+  type Dialect,
+  type GrammarChecker,
+  type Issue,
+} from '../writing/types.ts';
 import type { Settings } from '../settings/settings.ts';
 import type { ReplaceRequest } from '../shared/replace.ts';
 import { GrammarResults } from './components/GrammarResults.tsx';
+import { StyleResults } from './components/StyleResults.tsx';
 import type { ReplaceTarget } from './components/ResultActions.tsx';
 import type { ReplaceOutcome, SelectionOutcome } from './page-access.ts';
 import { describeSelection } from './selection-message.ts';
@@ -26,11 +33,14 @@ const TONE_CLASSES = {
   warning: 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200',
 } as const;
 
+type Action = 'grammar' | 'style';
+
 type CheckState =
   | { status: 'idle' }
-  | { status: 'checking' }
+  | { status: 'checking'; action: Action }
   /** `run` identifies the check, so each result starts with fresh actions. */
   | { status: 'done'; report: GrammarReport; run: number }
+  | { status: 'style'; report: StyleReport; run: number }
   | { status: 'error'; message: string };
 
 export interface AppProps {
@@ -49,10 +59,14 @@ export interface AppProps {
   };
 }
 
-/** Where a result could be written back, given how the text was obtained. */
+/**
+ * Where a result could be written back, given how the text was obtained.
+ * `original` is the text that was checked; `applied` the changes made.
+ */
 function replaceTargetFor(
   selection: SelectionOutcome | 'loading',
-  report: GrammarReport
+  original: string,
+  applied: readonly Issue[]
 ): ReplaceTarget {
   if (selection === 'loading' || selection.status !== 'captured') {
     return { kind: 'unavailable', reason: 'typed' };
@@ -60,11 +74,11 @@ function replaceTargetFor(
   if (selection.field === 'rich') {
     // Fixes are applied in place, at offsets into the checked text, so that
     // text must be exactly what the editor holds.
-    if (report.original !== selection.text) return { kind: 'unavailable', reason: 'edited' };
+    if (original !== selection.text) return { kind: 'unavailable', reason: 'edited' };
     return {
       kind: 'rich',
       original: selection.text,
-      fixes: report.fixed.map(({ start, end, original, replacements }) => ({
+      fixes: applied.map(({ start, end, original, replacements }) => ({
         start,
         end,
         original,
@@ -147,17 +161,21 @@ export function App({ loadSelection, grammar, replaceText, copyText, settings }:
     setCheck({ status: 'idle' });
   }
 
-  async function runFixGrammar() {
+  async function run(action: Action) {
     if (dialect === null) return;
     const snapshot = text;
     const checkedDialect = dialect;
     const isCurrent = () =>
       latestText.current === snapshot && latestDialect.current === checkedDialect;
-    setCheck({ status: 'checking' });
+    setCheck({ status: 'checking', action });
     try {
-      const report = await fixGrammar(grammar, snapshot, { dialect: checkedDialect });
-      if (isCurrent()) {
-        setCheck({ status: 'done', report, run: ++runs.current });
+      const options = { dialect: checkedDialect };
+      if (action === 'grammar') {
+        const report = await fixGrammar(grammar, snapshot, options);
+        if (isCurrent()) setCheck({ status: 'done', report, run: ++runs.current });
+      } else {
+        const report = await polishStyle(grammar, snapshot, options);
+        if (isCurrent()) setCheck({ status: 'style', report, run: ++runs.current });
       }
     } catch (error) {
       if (!isCurrent()) return;
@@ -218,18 +236,30 @@ export function App({ loadSelection, grammar, replaceText, copyText, settings }:
         )}
       </div>
 
-      <div className="flex items-end gap-2">
+      <div className="flex gap-2">
         <button
           type="button"
           onClick={() => {
-            void runFixGrammar();
+            void run('grammar');
           }}
           disabled={!canCheck}
           className="flex-1 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {check.status === 'checking' ? 'Checking…' : 'Fix grammar'}
+          {check.status === 'checking' && check.action === 'grammar' ? 'Checking…' : 'Fix grammar'}
         </button>
-        <div className="flex flex-col gap-0.5">
+        <button
+          type="button"
+          onClick={() => {
+            void run('style');
+          }}
+          disabled={!canCheck}
+          className="flex-1 rounded-md border border-indigo-600 bg-white px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-slate-800"
+        >
+          {check.status === 'checking' && check.action === 'style' ? 'Checking…' : 'Polish style'}
+        </button>
+      </div>
+      <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center gap-2">
           <label htmlFor={dialectId} className="text-xs text-slate-600 dark:text-slate-400">
             English variant
           </label>
@@ -240,7 +270,7 @@ export function App({ loadSelection, grammar, replaceText, copyText, settings }:
             onChange={(event) => {
               changeDialect(event.target.value as Dialect);
             }}
-            className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:outline-2 focus:outline-offset-1 focus:outline-indigo-600 dark:border-slate-600 dark:bg-slate-800"
+            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-2 focus:outline-offset-1 focus:outline-indigo-600 dark:border-slate-600 dark:bg-slate-800"
           >
             {dialect === null && <option value="">Loading…</option>}
             {Object.entries(DIALECT_NAMES).map(([value, name]) => (
@@ -261,7 +291,16 @@ export function App({ loadSelection, grammar, replaceText, copyText, settings }:
           <GrammarResults
             key={check.run}
             report={check.report}
-            target={replaceTargetFor(selection, check.report)}
+            target={replaceTargetFor(selection, check.report.original, check.report.fixed)}
+            replaceText={replaceText}
+            copyText={copyText}
+          />
+        )}
+        {check.status === 'style' && (
+          <StyleResults
+            key={check.run}
+            report={check.report}
+            targetFor={(applied) => replaceTargetFor(selection, check.report.original, applied)}
             replaceText={replaceText}
             copyText={copyText}
           />

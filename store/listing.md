@@ -24,6 +24,9 @@ Fix grammar and spelling in text boxes and editors, privately, on your device.
 > • WriteBetter reads only the text you selected, and only when you ask. It never reads password, verification-code or payment fields.
 > • Your text is never stored. Close the popup and it is gone. The only thing remembered is your choice of English variant.
 >
+> POLISH STYLE
+> Optional style suggestions, such as "very unique" or spelling out "ASAP". Each one is a choice you tick; nothing is applied on its own.
+>
 > CAREFUL WITH YOUR WORDS
 > • Names, web addresses, email addresses, code and file names are never "corrected".
 > • Anything WriteBetter isn't sure about is listed for you to decide, not changed.

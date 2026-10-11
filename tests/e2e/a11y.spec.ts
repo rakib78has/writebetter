@@ -65,3 +65,22 @@ for (const scheme of ['light', 'dark'] as const) {
     });
   });
 }
+
+// WB-A11Y-003
+test('Polish style suggestions have no WCAG A/AA violations', async ({ context, extensionId }) => {
+  for (const scheme of ['light', 'dark'] as const) {
+    const popup = await context.newPage();
+    await popup.emulateMedia({ colorScheme: scheme });
+    await popup.goto(extensionUrl(extensionId, 'popup/index.html'));
+    await popup
+      .getByRole('textbox', { name: 'Text to improve' })
+      .fill('It is a very unique design, so reply ASAP.');
+    await popup.getByRole('button', { name: 'Polish style' }).click();
+    const asap = popup.getByRole('checkbox', { name: /^ASAP →/ });
+    await expect(asap).toBeVisible({ timeout: ENGINE_TIMEOUT });
+    await expectNoViolations(popup, `${scheme}: style suggestions`);
+    await asap.check();
+    await expectNoViolations(popup, `${scheme}: a suggestion picked`);
+    await popup.close();
+  }
+});

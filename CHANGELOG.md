@@ -11,6 +11,7 @@ First release: grammar and spelling fixes for text you select on the web, entire
 ### Added
 
 - **Fix grammar.** Select text in a text box or a rich-text editor, open WriteBetter (toolbar icon, right-click **Improve with WriteBetter**, or Alt+Shift+W) and click **Fix grammar**. Grammar and spelling are checked by [Harper](https://github.com/automattic/harper), which runs inside the extension.
+- **Polish style.** Optional style suggestions (such as "very unique" or spelling out "ASAP"), each one a choice you tick. Rule-based and limited; it says so when it has nothing.
 - **See every change** before anything happens: removed and added words are marked inline, with the reason for each.
 - **Copy** the corrected text, or **replace it on the page** after confirming. Bold text, links and paragraphs are kept, Ctrl+Z undoes it, and an Undo button is offered in plain text boxes.
 - **Works in** ordinary text boxes and rich-text editors: Gmail-style editors and editors built on ProseMirror, Quill and Lexical are tested.
@@ -23,7 +24,7 @@ First release: grammar and spelling fixes for text you select on the web, entire
 ### Known limitations
 
 - English only (five varieties). The checker is rule-based: it catches common mistakes and misses some (for example "your welcome").
-- No tone or style rewriting.
+- No tone rewriting, and Polish style finds only a few kinds of style issue.
 - Editors inside embedded frames and canvas-based editors such as Google Docs are not supported; copy and paste works there.
 - Selections over about 5,000 characters are not checked.
 - About 8 MB to download, mostly the grammar engine.

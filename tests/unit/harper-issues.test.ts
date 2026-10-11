@@ -24,12 +24,12 @@ function fakeLint(
   problem: string,
   kind: string,
   suggestions: HarperSuggestion[],
-  problemText = problem
+  { problemText = problem, message = `${kind} problem` } = {}
 ): HarperLint {
   const start = text.indexOf(problem);
   return {
     lint_kind: () => kind,
-    message: () => `${kind} problem`,
+    message: () => message,
     span: () => ({ start, end: start + problem.length, free: () => freed.push(`span:${problem}`) }),
     get_problem_text: () => problemText,
     suggestions: () => suggestions,
@@ -37,13 +37,18 @@ function fakeLint(
   };
 }
 
-const linterReturning = (lints: HarperLint[]) => ({ lint: vi.fn(() => Promise.resolve(lints)) });
+/** A linter whose organizedLints() returns the given lints, keyed by rule. */
+const linterReturning = (byRule: Record<string, HarperLint[]>) => ({
+  organizedLints: vi.fn(() => Promise.resolve(byRule)),
+});
 
 describe('checkWithHarper', () => {
   // WB-UNIT-037
   it('converts lints to issues and lints the text as plain text', async () => {
     const text = 'This is teh end.';
-    const linter = linterReturning([fakeLint(text, 'teh', 'Typo', [fakeSuggestion('the')])]);
+    const linter = linterReturning({
+      The: [fakeLint(text, 'teh', 'Typo', [fakeSuggestion('the')])],
+    });
 
     await expect(checkWithHarper(linter, text)).resolves.toEqual([
       {
@@ -56,7 +61,7 @@ describe('checkWithHarper', () => {
         autoFix: true,
       },
     ]);
-    expect(linter.lint).toHaveBeenCalledWith(text, { language: 'plaintext' });
+    expect(linter.organizedLints).toHaveBeenCalledWith(text, { language: 'plaintext' });
   });
 
   // WB-UNIT-038
@@ -70,7 +75,7 @@ describe('checkWithHarper', () => {
   ])('maps Harper kind %s to %s', async (kind, category) => {
     const text = 'word';
     const [issue] = await checkWithHarper(
-      linterReturning([fakeLint(text, 'word', kind, [fakeSuggestion('ward')])]),
+      linterReturning({ SomeRule: [fakeLint(text, 'word', kind, [fakeSuggestion('ward')])] }),
       text
     );
     expect(issue?.category).toBe(category);
@@ -78,23 +83,67 @@ describe('checkWithHarper', () => {
 
   // WB-UNIT-039
   it.each(['Style', 'Readability', 'Enhancement', 'Redundancy', 'Regionalism', 'Formatting'])(
-    'ignores Harper kind %s, which is taste rather than an error',
+    'treats Harper kind %s as a style suggestion, never applied automatically',
     async (kind) => {
       const text = 'word';
-      const linter = linterReturning([fakeLint(text, 'word', kind, [fakeSuggestion('ward')])]);
-      await expect(checkWithHarper(linter, text)).resolves.toEqual([]);
+      const [issue] = await checkWithHarper(
+        linterReturning({ SomeRule: [fakeLint(text, 'word', kind, [fakeSuggestion('ward')])] }),
+        text
+      );
+      expect(issue).toMatchObject({ category: 'style', autoFix: false });
     }
   );
+
+  // WB-UNIT-060
+  it.each([
+    ['VeryUnique', 'WordChoice', 'Unique is absolute.'],
+    ['AsSoonAsPossible', 'Miscellaneous', 'Expand this.'],
+    ['ExpandDependencies', 'Miscellaneous', 'Expands deps.'],
+    ['AnyRule', 'Grammar', '`X` is fine, but consider `Y`.'],
+    ['AnyRule', 'Miscellaneous', 'Try expanding this initialism.'],
+  ])(
+    'treats rule %s (%s) with message "%s" as style, not a mistake',
+    async (rule, kind, message) => {
+      const text = 'word';
+      const [issue] = await checkWithHarper(
+        linterReturning({
+          [rule]: [fakeLint(text, 'word', kind, [fakeSuggestion('ward')], { message })],
+        }),
+        text
+      );
+      expect(issue).toMatchObject({ category: 'style', autoFix: false });
+    }
+  );
+
+  // WB-SEC-033
+  it('drops lints from disabled rules that change correct English', async () => {
+    const text = 'every one of them';
+    const linter = linterReturning({
+      Everyone: [fakeLint(text, 'every one', 'Miscellaneous', [fakeSuggestion('everyone')])],
+    });
+    await expect(checkWithHarper(linter, text)).resolves.toEqual([]);
+  });
+
+  // WB-UNIT-061
+  it('returns issues from all rules in order of position', async () => {
+    const text = 'teh cat and and dog';
+    const linter = linterReturning({
+      RepeatedWords: [fakeLint(text, 'and and', 'Repetition', [fakeSuggestion('and')])],
+      The: [fakeLint(text, 'teh', 'Typo', [fakeSuggestion('the')])],
+    });
+    const issues = await checkWithHarper(linter, text);
+    expect(issues.map((issue) => issue.original)).toEqual(['teh', 'and and']);
+  });
 
   // WB-UNIT-040
   it('turns remove and insert-after suggestions into full replacements', async () => {
     const text = 'and and done';
     const [remove] = await checkWithHarper(
-      linterReturning([fakeLint(text, 'and ', 'Repetition', [fakeSuggestion('', 1)])]),
+      linterReturning({ R: [fakeLint(text, 'and ', 'Repetition', [fakeSuggestion('', 1)])] }),
       text
     );
     const [insert] = await checkWithHarper(
-      linterReturning([fakeLint(text, 'done', 'Punctuation', [fakeSuggestion('.', 2)])]),
+      linterReturning({ P: [fakeLint(text, 'done', 'Punctuation', [fakeSuggestion('.', 2)])] }),
       text
     );
     expect(remove?.replacements).toEqual(['']);
@@ -106,7 +155,7 @@ describe('checkWithHarper', () => {
     const text = 'teh';
     const suggestions = ['teh', 'the', 'the', 'tech', 'ten', 'tea'].map((s) => fakeSuggestion(s));
     const [issue] = await checkWithHarper(
-      linterReturning([fakeLint(text, 'teh', 'Spelling', suggestions)]),
+      linterReturning({ SpellCheck: [fakeLint(text, 'teh', 'Spelling', suggestions)] }),
       text
     );
     expect(issue?.replacements).toEqual(['the', 'tech', 'ten']);
@@ -116,7 +165,7 @@ describe('checkWithHarper', () => {
   it('marks an issue with no replacement as not auto-fixable', async () => {
     const text = 'odd';
     const [issue] = await checkWithHarper(
-      linterReturning([fakeLint(text, 'odd', 'Grammar', [])]),
+      linterReturning({ G: [fakeLint(text, 'odd', 'Grammar', [])] }),
       text
     );
     expect(issue?.autoFix).toBe(false);
@@ -125,30 +174,25 @@ describe('checkWithHarper', () => {
   // WB-UNIT-043
   it('drops a lint whose offsets do not select the text it claims', async () => {
     const text = 'teh end';
-    const linter = linterReturning([fakeLint(text, 'teh', 'Typo', [fakeSuggestion('the')], 'xyz')]);
+    const linter = linterReturning({
+      The: [fakeLint(text, 'teh', 'Typo', [fakeSuggestion('the')], { problemText: 'xyz' })],
+    });
     await expect(checkWithHarper(linter, text)).resolves.toEqual([]);
   });
 
   // WB-UNIT-044
-  it('frees every lint, span and suggestion it reads', async () => {
+  it('frees every lint, span and suggestion it reads, including dropped ones', async () => {
     freed.length = 0;
-    const text = 'teh and and';
+    const text = 'teh and and every one';
     await checkWithHarper(
-      linterReturning([
-        fakeLint(text, 'teh', 'Typo', [fakeSuggestion('the'), fakeSuggestion('tea')]),
-        fakeLint(text, 'and and', 'Style', [fakeSuggestion('and')]),
-      ]),
+      linterReturning({
+        The: [fakeLint(text, 'teh', 'Typo', [fakeSuggestion('the'), fakeSuggestion('tea')])],
+        Everyone: [fakeLint(text, 'every one', 'Miscellaneous', [fakeSuggestion('everyone')])],
+      }),
       text
     );
     expect(freed.sort()).toEqual(
-      [
-        'lint:and and',
-        'lint:teh',
-        'span:and and',
-        'span:teh',
-        'suggestion:tea',
-        'suggestion:the',
-      ].sort()
+      ['lint:every one', 'lint:teh', 'span:teh', 'suggestion:tea', 'suggestion:the'].sort()
     );
   });
 });

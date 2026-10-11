@@ -4,7 +4,9 @@
  * engine can be swapped (or a remote one added) without touching it.
  */
 
-export type IssueCategory = 'spelling' | 'grammar' | 'punctuation' | 'capitalization';
+/** 'style' is a matter of taste (offered by "Polish style"); the rest are
+ *  mistakes (fixed by "Fix grammar"). */
+export type IssueCategory = 'spelling' | 'grammar' | 'punctuation' | 'capitalization' | 'style';
 
 /** A problem found in a piece of text. */
 export interface Issue {

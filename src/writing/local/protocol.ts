@@ -28,6 +28,7 @@ const CATEGORIES: readonly string[] = [
   'grammar',
   'punctuation',
   'capitalization',
+  'style',
 ] satisfies IssueCategory[];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
