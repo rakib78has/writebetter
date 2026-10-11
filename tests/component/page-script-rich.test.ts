@@ -268,3 +268,57 @@ describe('fixing text in a rich-text editor', () => {
     expect(await replace('x', [])).toEqual({ status: 'field-gone' });
   });
 });
+
+describe('editors that apply edits through their own model', () => {
+  // WB-INT-064
+  it('offers each edit as beforeinput first, and skips execCommand when the editor takes it', async () => {
+    const host = editorWithSelection(
+      '<div contenteditable="true">This is teh end</div>',
+      'This',
+      'end'
+    );
+    // Stands in for an editor like Slate: handles beforeinput itself.
+    const offered: string[] = [];
+    host.addEventListener('beforeinput', (event) => {
+      offered.push(`${event.inputType}:${event.data ?? ''}`);
+      event.preventDefault();
+      const range = document.getSelection()?.getRangeAt(0);
+      range?.deleteContents();
+      if (event.data) range?.insertNode(document.createTextNode(event.data));
+    });
+
+    const text = 'This is teh end';
+    expect(await replace(text, [fix(text, 'teh', 'the')])).toEqual({ status: 'replaced' });
+
+    expect(offered).toEqual(['insertText:the']);
+    expect(execCommandCalls).toEqual([]);
+    expect(host.textContent).toBe('This is the end');
+  });
+
+  // WB-INT-065
+  it('signals the end of the edit, so editors that save undo steps on it do', async () => {
+    const host = editorWithSelection(
+      '<div contenteditable="true">This is teh end</div>',
+      'This',
+      'end'
+    );
+    const keys: string[] = [];
+    host.addEventListener('keyup', (event) => keys.push(event.key));
+
+    const text = 'This is teh end';
+    await replace(text, [fix(text, 'teh', 'the')]);
+
+    expect(keys).toEqual(['End']);
+  });
+
+  // WB-INT-066
+  it('sends no signal when nothing was changed', async () => {
+    const host = editorWithSelection('<div contenteditable="true">we was late</div>', 'we', 'late');
+    const keys: string[] = [];
+    host.addEventListener('keyup', (event) => keys.push(event.key));
+
+    await replace('we was early', [fix('we was early', 'was', 'were')]);
+
+    expect(keys).toEqual([]);
+  });
+});

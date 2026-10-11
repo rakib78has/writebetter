@@ -204,3 +204,7 @@ The English variant changes which spellings are "corrected", so a hard-coded Ame
 ### D19. Suggestions classified by Harper rule
 
 Harper's lint _kind_ is too coarse to decide what may be changed automatically: `WordChoice` covers both "could of" (a mistake) and "very unique" (advice). `checkWithHarper` reads lints grouped by rule (`organizedLints`) and sends advice to a separate `style` category that only Polish style shows, and only applies when picked. Rules found to break correct English are dropped (`DISABLED_RULES`), each with a regression fixture.
+
+### D20. Offer each rich edit as `beforeinput` before using `execCommand`
+
+Browsers fire no `beforeinput` for `execCommand`. Editors that observe DOM mutations (ProseMirror, Quill, Lexical) absorb an `execCommand` edit; editors that only handle `beforeinput` (Slate) never see it, and their model silently diverges from the page. Dispatching a cancelable `beforeinput` first lets the second kind apply the edit through their model, including their undo history; if nobody cancels it, `execCommand` runs as before.

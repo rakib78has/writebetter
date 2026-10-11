@@ -62,6 +62,20 @@ const EDITORS: EditorCase[] = [
     hasLink: false,
     read: readModel,
   },
+  {
+    name: 'Slate',
+    page: 'editors/slate.html',
+    editable: '#slate-editor',
+    hasLink: true,
+    read: readModel,
+  },
+  {
+    name: 'TinyMCE (inline)',
+    page: 'editors/tinymce.html',
+    editable: '#editor',
+    hasLink: true,
+    read: readModel,
+  },
 ];
 
 for (const editor of EDITORS) {

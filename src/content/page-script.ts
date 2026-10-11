@@ -159,29 +159,28 @@ export function runInPage(message: PageRequest): CaptureResult | Promise<Replace
   /** Collapses whitespace, for comparing text read in different ways. */
   const normalise = (value: string) => value.replace(/\s+/g, ' ').trim();
 
-  /** Waits for a task to pass. MessageChannel is used rather than setTimeout
-   *  because browsers throttle timers in background tabs. */
-  const nextTask = () =>
+  /** Waits for `ms` milliseconds. */
+  const pause = (ms: number) =>
     new Promise<void>((resolve) => {
-      const channel = new MessageChannel();
-      channel.port1.onmessage = () => {
-        channel.port1.close();
-        resolve();
-      };
-      channel.port2.postMessage(null);
+      setTimeout(resolve, ms);
     });
 
   /**
-   * Waits until the page has seen a selection change. Editors such as
-   * Lexical keep their own copy of the selection, updated on the
-   * "selectionchange" event; editing before that lands on the old selection.
+   * How long editors may take to act on a change. Lexical keeps its own copy
+   * of the selection, updated on "selectionchange"; Slate does the same but
+   * throttles it to once every 100 ms. Editing before an editor has caught
+   * up makes it either edit the old selection or ignore the edit.
    */
+  const EDITOR_SETTLE_MS = 150;
+
+  /** Waits until the page has seen a selection change and editors have
+   *  had time to act on it. */
   const selectionSettled = () =>
     new Promise<void>((resolve) => {
       const done = () => {
         document.removeEventListener('selectionchange', done);
         clearTimeout(timer);
-        void nextTask().then(resolve);
+        void pause(EDITOR_SETTLE_MS).then(resolve);
       };
       // No event fires if the selection didn't actually change.
       const timer = setTimeout(done, 100);
@@ -237,6 +236,29 @@ export function runInPage(message: PageRequest): CaptureResult | Promise<Replace
       ? document.execCommand('delete')
       : document.execCommand('insertText', false, text);
     /* eslint-enable @typescript-eslint/no-deprecated */
+  }
+
+  /**
+   * Inserts text over the selection in a rich-text editor.
+   *
+   * Browsers fire no "beforeinput" event for execCommand edits. Editors that
+   * apply every edit through their own model (Slate is one) listen only for
+   * "beforeinput", so an execCommand edit would change the page's DOM
+   * behind the editor's back, leaving the two disagreeing. So the edit is
+   * first offered as a "beforeinput" event: an editor that handles it
+   * applies it to its model (and its undo history) and cancels the event.
+   * Only if nobody does is execCommand used, as for a plain contenteditable.
+   */
+  function insertInEditor(host: HTMLElement, text: string): boolean {
+    const offered = new InputEvent('beforeinput', {
+      inputType: text === '' ? 'deleteContent' : 'insertText',
+      data: text === '' ? null : text,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    });
+    const handledByEditor = !host.dispatchEvent(offered);
+    return handledByEditor || insertText(text);
   }
 
   function replaceInTextField(
@@ -319,14 +341,28 @@ export function runInPage(message: PageRequest): CaptureResult | Promise<Replace
       read.selection.removeAllRanges();
       read.selection.addRange(range);
       await selectionSettled();
-      if (!insertText(replacement)) break;
-      await nextTask();
+      if (!insertInEditor(host, replacement)) break;
+      // Checked after a pause, not at once: an editor whose own model
+      // didn't take the edit re-renders and puts the old text back, and
+      // that must be seen here rather than reported as success.
+      await pause(EDITOR_SETTLE_MS);
 
       if (host.textContent !== expectedAfter) {
         // Stop at once rather than build further edits on a wrong one.
         return { status: 'unexpected', applied };
       }
       applied++;
+    }
+
+    if (applied > 0) {
+      // Some editors (TinyMCE is one) save an undo step only when a typing
+      // burst ends, which they detect from the release of a caret-movement
+      // key. Signal that, so Ctrl+Z in the editor can undo the change. A
+      // key release moves nothing and types nothing; other editors ignore it.
+      host.dispatchEvent(
+        new KeyboardEvent('keyup', { key: 'End', code: 'End', keyCode: 35, bubbles: true })
+      );
+      await pause(EDITOR_SETTLE_MS);
     }
 
     const total = request.fixes.length;

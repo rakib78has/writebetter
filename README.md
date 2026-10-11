@@ -17,7 +17,7 @@ A Chrome extension that fixes grammar and spelling in text you write on the web,
 - **Your English.** Choose American, British, Australian, Canadian or Indian spelling; the default follows your browser language and the choice is remembered on this device.
 - **Polish style.** Optional, rule-based style suggestions, such as "very unique" or spelling out "ASAP". Nothing is applied unless you tick it.
 - **See every change.** Removed words are struck through and added words highlighted, so nothing changes without you seeing it.
-- **Works in rich-text editors**: plain `contenteditable` (Gmail-style), ProseMirror, Quill and Lexical are tested. Only the words that change are edited, so bold text, links and paragraphs are kept. See [compatibility](docs/compatibility.md).
+- **Works in rich-text editors**: plain `contenteditable` (Gmail-style), ProseMirror, Quill, Lexical, Slate and TinyMCE (inline) are tested. Only the words that change are edited, so bold text, links and paragraphs are kept. See [compatibility](docs/compatibility.md).
 - **Copy, or replace on the page.** Replacing asks you to confirm first, refuses if you have edited the text since, and can be undone with the **Undo** button or Ctrl+Z in the page.
 - **Safe by design.** Names, URLs, email addresses, code and file names are never "corrected". Anything WriteBetter is unsure about is listed for you to check, not changed.
 - Clear messages when there is nothing to load: no selection, an unsupported field, or a page Chrome doesn't let extensions read.

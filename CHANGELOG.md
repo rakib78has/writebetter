@@ -14,7 +14,7 @@ First release: grammar and spelling fixes for text you select on the web, entire
 - **Polish style.** Optional style suggestions (such as "very unique" or spelling out "ASAP"), each one a choice you tick. Rule-based and limited; it says so when it has nothing.
 - **See every change** before anything happens: removed and added words are marked inline, with the reason for each.
 - **Copy** the corrected text, or **replace it on the page** after confirming. Bold text, links and paragraphs are kept, Ctrl+Z undoes it, and an Undo button is offered in plain text boxes.
-- **Works in** ordinary text boxes and rich-text editors: Gmail-style editors and editors built on ProseMirror, Quill and Lexical are tested.
+- **Works in** ordinary text boxes and rich-text editors: Gmail-style editors and editors built on ProseMirror, Quill, Lexical, Slate and TinyMCE (inline) are tested.
 - **Your English.** American, British, Australian, Canadian or Indian spelling, picked from your browser language and changeable in the popup. The choice is remembered on this device.
 - **Careful with your words.** Names, web and email addresses, code, file names and HTML are never "corrected". Anything WriteBetter isn't sure about is listed for you to decide.
 - **Safe replacing.** Nothing changes on the page without your confirmation, and never if you have edited the text since WriteBetter read it.
@@ -32,6 +32,6 @@ First release: grammar and spelling fixes for text you select on the web, entire
 ### Engineering
 
 - Manifest V3; permissions `activeTab`, `contextMenus`, `scripting` and `storage` (one preference) only; no host permissions; strict CSP (`'wasm-unsafe-eval'` for the grammar engine only).
-- 288 unit, component and integration tests; 42 end-to-end tests in real Chromium, including real ProseMirror, Quill and Lexical editors, accessibility scans, and failure on any extension-page error.
+- Unit, component and integration tests, and end-to-end tests in real Chromium, including real ProseMirror, Quill, Lexical, Slate and TinyMCE editors, accessibility scans, and failure on any extension-page error.
 - Build gates for permissions, CSP, secrets, network calls, package contents and size. The release workflow publishes the zip with checksums and a CycloneDX SBOM. See `docs/security-review.md` and `docs/release-process.md`.
 - Third-party licences ship in `THIRD_PARTY_NOTICES.txt`.

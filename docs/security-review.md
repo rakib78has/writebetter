@@ -2,7 +2,9 @@
 
 Date: 2026-10-10. Scope: the extension as built from this branch (popup, service worker, injected page script, grammar worker), its build and release pipeline, and its dependencies. The threat model and standing rules are in [security.md](security.md); this records what was checked, how, and what was found.
 
-> **Addendum (after this review):** the `storage` permission was added to remember one preference, the English variant, in `chrome.storage.local`. No text is stored, and stored values are validated on read (WB-SEC-032). See [security.md](security.md#permissions).
+> **Addenda (after this review):** rich-text edits are now first offered to the editor as a `beforeinput` event, and a caret-key release is signalled after edits (see compatibility.md); both are dispatched only on the focused editor, after the user confirms.
+>
+> the `storage` permission was added to remember one preference, the English variant, in `chrome.storage.local`. No text is stored, and stored values are validated on read (WB-SEC-032). See [security.md](security.md#permissions).
 
 ## Summary
 
@@ -52,7 +54,7 @@ Searches of `src/`: no `eval`, `new Function`, `innerHTML`, `outerHTML`, `insert
 
 ### 5. Injected code
 
-`runInPage` runs in Chrome's isolated world: the page's own scripts cannot read its variables, replace `document.execCommand` for it, or see the private MessageChannel it uses to yield. A hostile page _can_ control the DOM it reads, which is why its answers are validated, and it can observe edits to its own fields, which is inherent and harmless.
+`runInPage` runs in Chrome's isolated world: the page's own scripts cannot read its variables, or replace `document.execCommand` for it. A hostile page _can_ control the DOM it reads, which is why its answers are validated, and it can observe edits to its own fields, which is inherent and harmless.
 
 ### 6. Dependencies
 
